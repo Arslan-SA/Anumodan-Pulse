@@ -119,25 +119,33 @@ Or press **Run guided demo** for a scripted version of the same scenario.
 ```bash
 git clone https://github.com/Arslan-SA/pravah.git
 cd pravah
+
+# Option 1: Run from repository root
+npm run dev      # starts frontend dev server
+npm run build    # builds production bundle
+
+# Option 2: Run directly in frontend/
+cd frontend
 npm install
-npm run dev      # start the app
-npm test         # run engine tests
-npm run build    # production build
+npm run dev
 ```
 
 ## Project structure
 
-Indicative layout:
-
 ```
 pravah/
-├── src/
-│   ├── engine/        # framework-free workflow, deadline, alert and audit logic
-│   ├── config/        # routes, timelines, reminder offsets, escalation ladder
-│   ├── data/          # deterministic synthetic seed data
-│   ├── components/    # dashboards, planner, tracker, audit viewer
-│   └── store/         # UI state
-├── tests/             # routing, auto-advance, alert idempotency, escalation, audit chain
+├── frontend/
+│   ├── components/    # AppShell, UI components, charts, and DataTable
+│   ├── data/          # Deterministic seed data and persistence
+│   ├── lib/           # Statutory calculation, RBAC, dates, and CSV export
+│   ├── pages/         # Role-based pages and workspaces
+│   ├── store/         # State store, simulated clock, and deadline evaluation
+│   ├── types.ts       # Domain types and statutory schemas
+│   ├── index.css      # Design system and layout styles
+│   ├── App.tsx        # Application router and protected routes
+│   ├── index.tsx      # Entrypoint mounting React root
+│   └── vite.config.ts # Vite configuration
+├── package.json       # Root scripts forwarding to frontend
 └── README.md
 ```
 
