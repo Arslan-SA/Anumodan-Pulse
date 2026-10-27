@@ -10,7 +10,9 @@ An integrated platform for end-to-end automation and monitoring of AICTE approva
 ![React](https://img.shields.io/badge/React-18-0B1220?style=flat-square&logo=react&logoColor=61DAFB)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-0B1220?style=flat-square&logo=typescript&logoColor=3178C6)
 ![Vite](https://img.shields.io/badge/Vite-0B1220?style=flat-square&logo=vite&logoColor=646CFF)
-![Tailwind](https://img.shields.io/badge/Tailwind-0B1220?style=flat-square&logo=tailwindcss&logoColor=38BDF8)
+![Python](https://img.shields.io/badge/Python-3.12+-0B1220?style=flat-square&logo=python&logoColor=3776AB)
+![FastAPI](https://img.shields.io/badge/FastAPI-0B1220?style=flat-square&logo=fastapi&logoColor=009688)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-0B1220?style=flat-square&logo=postgresql&logoColor=4169E1)
 ![Data](https://img.shields.io/badge/Demo%20data-synthetic-B3123C?style=flat-square&labelColor=0B1220)
 
 </div>
@@ -114,6 +116,8 @@ Or press **Run guided demo** for a scripted version of the same scenario.
 
 ## Getting started
 
+### Frontend
+
 **Prerequisites:** Node.js 18+ and npm.
 
 ```bash
@@ -128,6 +132,45 @@ npm run build    # builds production bundle
 cd frontend
 npm install
 npm run dev
+```
+
+### Backend
+
+**Prerequisites:** Python 3.12+, PostgreSQL 15+.
+
+```bash
+cd backend
+
+# 1. Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate    # macOS / Linux
+# venv\Scripts\activate     # Windows
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Configure environment
+cp .env.example .env
+# Edit .env with your PostgreSQL credentials
+
+# 4. Create the database
+createdb aicte_flowops
+
+# 5. Run migrations
+alembic upgrade head
+
+# 6. Start the API server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# 7. Run tests
+pytest -v
+```
+
+**Verify:** Open http://localhost:8000/docs for Swagger UI, or hit the health endpoint:
+
+```bash
+curl http://localhost:8000/api/v1/health
+# {"status":"healthy","environment":"development","version":"1.0.0","timestamp":"..."}
 ```
 
 ## Project structure
@@ -145,6 +188,26 @@ pravah/
 │   ├── App.tsx        # Application router and protected routes
 │   ├── index.tsx      # Entrypoint mounting React root
 │   └── vite.config.ts # Vite configuration
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   │   └── v1/
+│   │   │       ├── endpoints/  # Route handlers (health, ...)
+│   │   │       └── router.py   # v1 API router
+│   │   ├── models/             # SQLAlchemy ORM models
+│   │   ├── schemas/            # Pydantic v2 schemas
+│   │   ├── services/           # Business logic layer
+│   │   ├── utils/              # Shared utilities
+│   │   ├── config.py           # Settings via pydantic-settings
+│   │   ├── database.py         # Engine, session, Base
+│   │   └── main.py             # FastAPI application factory
+│   ├── alembic/
+│   │   ├── versions/           # Migration scripts
+│   │   └── env.py              # Alembic environment config
+│   ├── tests/                  # pytest test suite
+│   ├── alembic.ini             # Alembic configuration
+│   ├── requirements.txt        # Python dependencies
+│   └── .env.example            # Environment variable template
 ├── package.json       # Root scripts forwarding to frontend
 └── README.md
 ```

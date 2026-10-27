@@ -9,3 +9,15 @@ yarn-error.log*
 frontend/node_modules
 frontend/dist
 frontend/.vite
+
+# Python / Backend
+backend/.env
+backend/__pycache__
+backend/**/__pycache__
+backend/*.pyc
+backend/.pytest_cache
+backend/**/.pytest_cache
+*.egg-info
+.eggs
+backend/venv
+backend/.venv
