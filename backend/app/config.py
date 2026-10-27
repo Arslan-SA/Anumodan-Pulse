@@ -53,6 +53,15 @@ class Settings(BaseSettings):
     default_reminder_windows_days: str = "7,3,1"
     default_escalation_overdue_days: int = 5
 
+    # ── AI Insights & Provider (Phase 9) ────────────────────────────────
+    ai_enabled: bool = True
+    ai_provider: str = "fallback"  # "fallback", "gemini", "openai", "mock"
+    ai_api_key: str | None = None
+    ai_model: str = "gemini-1.5-flash"
+    ai_temperature: float = 0.2
+    ai_timeout_seconds: int = 15
+    ai_max_tokens: int = 1500
+
 
     def validate_production_security(self) -> None:
         """Fail fast if secrets are insecure in production."""

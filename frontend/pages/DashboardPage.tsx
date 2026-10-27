@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+    Activity,
+    AlertCircle,
     AlertOctagon,
     CalendarClock,
     CheckCircle2,
@@ -9,8 +11,11 @@ import {
     FileText,
     GitBranch,
     Plus,
+    RefreshCw,
     ShieldAlert,
     ShieldCheck,
+    Sparkles,
+    TrendingUp,
 } from 'lucide-react';
 import { PageHead } from '../components/AppShell';
 import { StatusDonut, StatusLegend, GroupedBars, SingleBars, STATUS_COLORS } from '../components/charts';
@@ -18,6 +23,14 @@ import { Badge, StatusBadge, RiskBadge, Notice } from '../components/ui';
 import { useStore } from '../store/store';
 import { ROLE_LABELS } from '../types';
 import { fmtDate, fmtRelative, daysBetween } from '../lib/dates';
+import {
+    fetchAIDashboardInsights,
+    fetchAIWorkflowBottlenecks,
+    fetchAIComplianceInsights,
+    type AIDashboardInsights,
+    type AIWorkflowBottlenecks,
+    type AIComplianceInsights,
+} from '../lib/aiApi';
 import {
     ageingBuckets,
     appRisk,
@@ -82,6 +95,34 @@ export default function DashboardPage() {
     const { state, user, now } = useStore();
     const navigate = useNavigate();
     const [ranges, setRanges] = useState<number[]>(state.settings.ageingRanges);
+
+    const [aiTab, setAiTab] = useState<'insights' | 'bottlenecks' | 'compliance'>('insights');
+    const [aiInsights, setAiInsights] = useState<AIDashboardInsights | null>(null);
+    const [aiBottlenecks, setAiBottlenecks] = useState<AIWorkflowBottlenecks | null>(null);
+    const [aiCompliance, setAiCompliance] = useState<AIComplianceInsights | null>(null);
+    const [aiLoading, setAiLoading] = useState<boolean>(false);
+    const [aiError, setAiError] = useState<string | null>(null);
+
+    const loadAiData = () => {
+        setAiLoading(true);
+        setAiError(null);
+        Promise.all([
+            fetchAIDashboardInsights(),
+            fetchAIWorkflowBottlenecks(),
+            fetchAIComplianceInsights(),
+        ])
+            .then(([ins, bn, comp]) => {
+                setAiInsights(ins);
+                setAiBottlenecks(bn);
+                setAiCompliance(comp);
+            })
+            .catch((err) => setAiError(err?.message || 'Error fetching AI intelligence'))
+            .finally(() => setAiLoading(false));
+    };
+
+    React.useEffect(() => {
+        loadAiData();
+    }, [user?.id]);
 
     const apps = useMemo(() => scopeApplications(user, state.applications, state.evcVisits), [user, state.applications, state.evcVisits]);
     const undertakings = useMemo(
@@ -292,6 +333,384 @@ export default function DashboardPage() {
                     </div>
                 </div>
             )}
+
+            {/* AI Workflow Intelligence & Operational Insights Section */}
+            <div
+                className="card mt16 p16"
+                style={{
+                    background: 'linear-gradient(180deg, #f8faff 0%, #ffffff 100%)',
+                    border: '1px solid #c7d2fe',
+                    borderRadius: '8px',
+                }}
+            >
+                <div className="row between align-center mb12 wrap gap8">
+                    <div>
+                        <div className="row align-center gap8 mb4">
+                            <h2 style={{ fontSize: '18px', margin: 0, color: '#1e1b4b' }}>Workflow Intelligence & AI Insights</h2>
+                            <span
+                                style={{
+                                    display: 'inline-flex',
+                                    padding: '3px 8px',
+                                    borderRadius: '4px',
+                                    background: '#e0e7ff',
+                                    color: '#3730a3',
+                                    fontSize: '11.5px',
+                                    fontWeight: 600,
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                }}
+                            >
+                                <Sparkles size={13} /> AI Advisory Assistant
+                            </span>
+                        </div>
+                        <p className="small muted" style={{ margin: 0 }}>
+                            Real-time queue diagnostics, explainable pending-work alerts, and statutory compliance posture.
+                        </p>
+                    </div>
+                    <div className="row align-center gap8">
+                        <button
+                            className="btn btn--sm"
+                            onClick={loadAiData}
+                            disabled={aiLoading}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                            <RefreshCw size={13} className={aiLoading ? 'animate-spin' : ''} />
+                            {aiLoading ? 'Analyzing...' : 'Refresh AI'}
+                        </button>
+                    </div>
+                </div>
+
+                {/* Advisory Notice Banner */}
+                <div
+                    style={{
+                        background: '#fffbeb',
+                        borderLeft: '3px solid #f59e0b',
+                        padding: '8px 12px',
+                        borderRadius: '4px',
+                        fontSize: '12px',
+                        color: '#92400e',
+                        marginBottom: '14px',
+                    }}
+                >
+                    <strong>Advisory Notice:</strong> AI insights are advisory and require official review by authorized AICTE personnel.
+                    Algorithms never make regulatory decisions or approve/reject applications autonomously.
+                </div>
+
+                {/* Tab selector */}
+                <div className="row gap8 mb16" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '8px' }}>
+                    <button
+                        className={`btn btn--sm ${aiTab === 'insights' ? 'btn--primary' : ''}`}
+                        onClick={() => setAiTab('insights')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                        <AlertCircle size={14} /> Pending-Work Insights
+                        {aiInsights && aiInsights.total_insights > 0 && (
+                            <span
+                                style={{
+                                    background: aiTab === 'insights' ? '#ffffff' : '#e0e7ff',
+                                    color: aiTab === 'insights' ? '#3730a3' : '#4338ca',
+                                    borderRadius: '10px',
+                                    padding: '1px 6px',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                }}
+                            >
+                                {aiInsights.total_insights}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        className={`btn btn--sm ${aiTab === 'bottlenecks' ? 'btn--primary' : ''}`}
+                        onClick={() => setAiTab('bottlenecks')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                        <TrendingUp size={14} /> Workflow Bottlenecks
+                        {aiBottlenecks && (
+                            <span
+                                style={{
+                                    background:
+                                        aiBottlenecks.overall_workflow_health === 'HEALTHY'
+                                            ? '#dcfce7'
+                                            : aiBottlenecks.overall_workflow_health === 'MODERATE_DELAY'
+                                            ? '#fef3c7'
+                                            : '#fee2e2',
+                                    color:
+                                        aiBottlenecks.overall_workflow_health === 'HEALTHY'
+                                            ? '#15803d'
+                                            : aiBottlenecks.overall_workflow_health === 'MODERATE_DELAY'
+                                            ? '#b45309'
+                                            : '#b91c1c',
+                                    borderRadius: '4px',
+                                    padding: '1px 6px',
+                                    fontSize: '10.5px',
+                                    fontWeight: 600,
+                                }}
+                            >
+                                {aiBottlenecks.overall_workflow_health.replace('_', ' ')}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        className={`btn btn--sm ${aiTab === 'compliance' ? 'btn--primary' : ''}`}
+                        onClick={() => setAiTab('compliance')}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                    >
+                        <ShieldCheck size={14} /> Compliance Posture
+                        {aiCompliance && aiCompliance.total_risk_items > 0 && (
+                            <span
+                                style={{
+                                    background: aiTab === 'compliance' ? '#ffffff' : '#fef2f2',
+                                    color: aiTab === 'compliance' ? '#b91c1c' : '#dc2626',
+                                    borderRadius: '10px',
+                                    padding: '1px 6px',
+                                    fontSize: '11px',
+                                    fontWeight: 700,
+                                }}
+                            >
+                                {aiCompliance.total_risk_items} risks
+                            </span>
+                        )}
+                    </button>
+                </div>
+
+                {/* Loading state */}
+                {aiLoading && (
+                    <div className="p24 text-center muted small">
+                        <RefreshCw size={20} className="animate-spin mb8" />
+                        <div>Analyzing real-time database records and computing AI workflow intelligence...</div>
+                    </div>
+                )}
+
+                {/* Error state */}
+                {aiError && !aiLoading && (
+                    <div
+                        style={{
+                            padding: '12px',
+                            background: '#fef2f2',
+                            border: '1px solid #fecaca',
+                            borderRadius: '6px',
+                            color: '#b91c1c',
+                            fontSize: '13px',
+                        }}
+                    >
+                        <div className="row align-center gap6 mb4 font-semibold">
+                            <AlertCircle size={14} /> AI Diagnostics Offline
+                        </div>
+                        <p className="small mb8">{aiError}</p>
+                        <button className="btn btn--sm" onClick={loadAiData}>
+                            Retry Analysis
+                        </button>
+                    </div>
+                )}
+
+                {/* Content: Insights */}
+                {aiTab === 'insights' && !aiLoading && aiInsights && (
+                    <div className="col gap12">
+                        <div className="small" style={{ color: '#475569', fontStyle: 'italic', marginBottom: '4px' }}>
+                            {aiInsights.summary_narrative}
+                        </div>
+                        {aiInsights.items && aiInsights.items.length === 0 && (
+                            <div className="text-center p16 muted small">No pending-work anomalies detected in current scope.</div>
+                        )}
+                        <div className="grid-auto gap12" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+                            {aiInsights.items?.map((item) => {
+                                const isCrit = item.priority === 'CRITICAL';
+                                const isHigh = item.priority === 'HIGH';
+                                return (
+                                    <div
+                                        key={item.id}
+                                        style={{
+                                            border: `1px solid ${isCrit ? '#fecaca' : isHigh ? '#fed7aa' : '#e2e8f0'}`,
+                                            background: isCrit ? '#fff5f5' : isHigh ? '#fffaf0' : '#ffffff',
+                                            borderRadius: '6px',
+                                            padding: '12px',
+                                        }}
+                                    >
+                                        <div className="row between align-center mb6">
+                                            <span
+                                                style={{
+                                                    fontSize: '10.5px',
+                                                    fontWeight: 700,
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    background: isCrit ? '#fee2e2' : isHigh ? '#ffedd5' : '#e2e8f0',
+                                                    color: isCrit ? '#b91c1c' : isHigh ? '#c2410c' : '#475569',
+                                                }}
+                                            >
+                                                {item.priority}
+                                            </span>
+                                            <span className="muted" style={{ fontSize: '11px' }}>
+                                                {item.entity_type}
+                                            </span>
+                                        </div>
+                                        <h4 className="small font-semibold mb4" style={{ color: '#0f172a' }}>
+                                            {item.title}
+                                        </h4>
+                                        <p className="small mb8" style={{ color: '#334155', lineHeight: 1.4 }}>
+                                            {item.description}
+                                        </p>
+                                        <div
+                                            style={{
+                                                background: 'rgba(255, 255, 255, 0.7)',
+                                                padding: '6px 8px',
+                                                borderRadius: '4px',
+                                                fontSize: '11.5px',
+                                                color: '#64748b',
+                                                marginBottom: '6px',
+                                            }}
+                                        >
+                                            <strong>Factual Basis:</strong> {item.factual_basis}
+                                        </div>
+                                        <div style={{ fontSize: '11.5px', color: '#1e40af', fontWeight: 500 }}>
+                                            <strong>Action:</strong> {item.recommended_action}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
+                {/* Content: Bottlenecks */}
+                {aiTab === 'bottlenecks' && !aiLoading && aiBottlenecks && (
+                    <div className="col gap12">
+                        <div
+                            style={{
+                                padding: '10px 14px',
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '12.5px',
+                                color: '#334155',
+                            }}
+                        >
+                            <strong>Diagnostic Analysis:</strong> {aiBottlenecks.narrative_analysis}
+                        </div>
+
+                        <div className="grid-auto gap12" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
+                            {aiBottlenecks.stages?.map((stg) => (
+                                <div
+                                    key={stg.stage_name}
+                                    style={{
+                                        border: `1px solid ${stg.is_bottleneck ? '#fca5a5' : '#e2e8f0'}`,
+                                        background: stg.is_bottleneck ? '#fffbfb' : '#ffffff',
+                                        borderRadius: '6px',
+                                        padding: '12px',
+                                    }}
+                                >
+                                    <div className="row between align-center mb6">
+                                        <h4 className="small font-semibold" style={{ margin: 0, color: '#0f172a' }}>
+                                            {stg.stage_name}
+                                        </h4>
+                                        {stg.is_bottleneck ? (
+                                            <span
+                                                style={{
+                                                    fontSize: '10.5px',
+                                                    fontWeight: 700,
+                                                    padding: '2px 6px',
+                                                    borderRadius: '4px',
+                                                    background: '#fee2e2',
+                                                    color: '#b91c1c',
+                                                }}
+                                            >
+                                                BOTTLENECK ({stg.severity})
+                                            </span>
+                                        ) : (
+                                            <span style={{ fontSize: '10.5px', color: '#16a34a', fontWeight: 600 }}>Optimal</span>
+                                        )}
+                                    </div>
+
+                                    <div className="row gap16 mb8" style={{ fontSize: '12px', color: '#475569' }}>
+                                        <div>
+                                            <strong>Pending:</strong> {stg.pending_count} file(s)
+                                        </div>
+                                        <div>
+                                            <strong>Avg Wait:</strong> {stg.average_waiting_days ?? '—'} d
+                                        </div>
+                                        <div>
+                                            <strong>Target:</strong> {stg.target_duration_days ?? 21} d
+                                        </div>
+                                        {stg.overdue_count > 0 && (
+                                            <div style={{ color: '#dc2626' }}>
+                                                <strong>Overdue:</strong> {stg.overdue_count}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {stg.suggested_mitigations && stg.suggested_mitigations.length > 0 && (
+                                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '6px', fontSize: '11.5px', color: '#1e3a8a' }}>
+                                            <strong>Mitigation:</strong> {stg.suggested_mitigations[0]}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Content: Compliance */}
+                {aiTab === 'compliance' && !aiLoading && aiCompliance && (
+                    <div className="col gap12">
+                        <div
+                            style={{
+                                padding: '10px 14px',
+                                background: '#f8fafc',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '6px',
+                                fontSize: '12.5px',
+                                color: '#334155',
+                            }}
+                        >
+                            <strong>Statutory Posture:</strong> {aiCompliance.compliance_posture_summary}
+                        </div>
+
+                        <div className="row gap16 wrap" style={{ fontSize: '12px' }}>
+                            <span style={{ color: '#dc2626', fontWeight: 600 }}>Overdue Undertakings: {aiCompliance.overdue_count}</span>
+                            <span style={{ color: '#d97706', fontWeight: 600 }}>Upcoming Deadlines (14d): {aiCompliance.upcoming_deadlines_count}</span>
+                            <span style={{ color: '#2563eb', fontWeight: 600 }}>Pending Verification: {aiCompliance.pending_verification_count}</span>
+                            <span style={{ color: '#7c3aed', fontWeight: 600 }}>Expired Documents: {aiCompliance.expired_documents_count}</span>
+                        </div>
+
+                        {aiCompliance.overdue_items && aiCompliance.overdue_items.length > 0 && (
+                            <div>
+                                <h4 className="small font-semibold mb6" style={{ color: '#b91c1c' }}>
+                                    High Priority Overdue Filings
+                                </h4>
+                                <div className="col gap6">
+                                    {aiCompliance.overdue_items.slice(0, 3).map((ov) => (
+                                        <div
+                                            key={ov.id}
+                                            className="row between align-center p8"
+                                            style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '4px', fontSize: '12px' }}
+                                        >
+                                            <div>
+                                                <strong>{ov.title}</strong>{' '}
+                                                <span className="muted">({ov.institution_name || 'Institution'})</span>
+                                            </div>
+                                            <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                                                {ov.days_overdue_or_remaining} days overdue
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {aiCompliance.common_deficiency_patterns && aiCompliance.common_deficiency_patterns.length > 0 && (
+                            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '8px' }}>
+                                <h4 className="small font-semibold mb4" style={{ color: '#475569' }}>
+                                    Identified Deficiency Trends
+                                </h4>
+                                <ul style={{ paddingLeft: '18px', margin: 0, fontSize: '12px', color: '#64748b' }}>
+                                    {aiCompliance.common_deficiency_patterns.map((pat, idx) => (
+                                        <li key={idx}>{pat}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </div>
+                )}
+            </div>
 
             <div className="split mt16">
                 <div className="card">

@@ -80,6 +80,16 @@ from app.schemas.report import (
     DocumentReportRow,
     OverdueReportRow,
 )
+from app.schemas.ai import (
+    AIApplicationSummaryResponse,
+    AIComplianceInsightsResponse,
+    AIDashboardInsightsResponse,
+    AIWorkflowBottlenecksResponse,
+    ComplianceRiskItem,
+    DocumentExpiryRiskItem,
+    InsightItem,
+    StageBottleneckAnalysis,
+)
 
 __all__ = [
     "PaginatedResponse",
@@ -148,6 +158,14 @@ __all__ = [
     "ComplianceReportRow",
     "OverdueReportRow",
     "DocumentReportRow",
+    "AIApplicationSummaryResponse",
+    "AIDashboardInsightsResponse",
+    "AIWorkflowBottlenecksResponse",
+    "AIComplianceInsightsResponse",
+    "InsightItem",
+    "StageBottleneckAnalysis",
+    "ComplianceRiskItem",
+    "DocumentExpiryRiskItem",
 ]
 
 

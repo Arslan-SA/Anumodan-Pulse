@@ -364,6 +364,50 @@ The CSV response includes:
 - Header: `Content-Disposition: attachment; filename="<report_name>_<YYYY-MM-DD>.csv"`
 - Standard headers matching tabular views, properly escaped against comma/newline injections.
 
+---
+
+## Phase 9: AI-Assisted Insights & Workflow Intelligence
+
+Phase 9 introduces an AI-assisted analytical layer providing natural-language executive briefings, operational pending-work alerts, bottleneck diagnostics, and statutory compliance risk intelligence.
+
+### AI Endpoints
+
+| Method | Endpoint | Query Parameters | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/ai/applications/{id}/summary` | None | Concise executive summary, completed stages, outstanding actions, document signals, and advisory recommendations. Strictly isolated by institution and reviewer assignments. |
+| `GET` | `/api/v1/ai/dashboard/insights` | `institution_id` (admin/official only) | Prioritized operational intelligence covering ageing applications, multi-item deficiencies, impending deadlines, and document expiries with explainable factual references. |
+| `GET` | `/api/v1/ai/workflow/bottlenecks` | `institution_id` (admin/official only) | Quantitative queue throughput diagnostics (average wait days vs configured targets, overdue volumes) paired with administrative load-balancing narrative. |
+| `GET` | `/api/v1/ai/compliance/insights` | `institution_id` (admin/official only) | Statutory compliance risk breakdown (overdue items, 14-day upcoming deadlines, items awaiting scrutiny verification, expiring legal certificates, and common deficiency trends). |
+
+### AI Provider Architecture & Configuration
+
+The service utilizes an extensible provider abstraction (`BaseAIProvider`) supporting vendor-agnostic deployments:
+- **Configured Providers**: `gemini` (Google Gemini 1.5 Flash), `openai` (GPT-4o mini), `mock` (unit testing), `fallback` (deterministic rule engine).
+- **Graceful Fallback**: If `AI_ENABLED=false`, no API key is configured, or external provider calls experience network timeouts or rate limits, the system automatically falls back to the deterministic rule engine without throwing 500 errors.
+- **Privacy & Security**: API keys are stored strictly server-side in environment variables and never exposed to clients. External prompts omit sensitive personally identifiable information (PII) and only pass minimal structured workflow attributes.
+
+#### Environment Variables (`.env`)
+
+```ini
+# AI Provider Configuration
+AI_ENABLED=true
+AI_PROVIDER=fallback        # Options: fallback, gemini, openai, mock
+AI_API_KEY=your_key_here    # Server-side API key (kept confidential)
+AI_MODEL=gemini-1.5-flash    # Model identifier
+AI_TEMPERATURE=0.2          # Low temperature for factual consistency
+AI_TIMEOUT_SECONDS=15       # Network request timeout
+AI_MAX_TOKENS=1500          # Maximum token budget
+```
+
+### AI Decision Boundaries & Safeguards
+
+The AI intelligence subsystem operates within strict safety boundaries:
+1. **Advisory Only**: AI outputs are strictly advisory (`is_ai_generated=true` / `is_ai_generated=false`) and must be reviewed by authorized human officials.
+2. **No Autonomous Approvals/Rejections**: The AI engine never alters `Application.status`, never records regulatory approvals or rejections, and never closes compliance records.
+3. **Fact-Grounded**: Every insight references explicit verified database identifiers and timestamps; numerical metrics (pending counts, wait days, overdue numbers) are computed via deterministic database aggregation.
+4. **Mandatory Advisory Disclaimer**: Every response contains:
+   > *"Advisory AI-generated insight. Requires human verification by an authorized official; does not constitute a statutory or regulatory decision."*
+
 ## Regulatory safeguard
 
 Pravah is designed to function in accordance with the applicable AICTE regulations, the Approval Process Handbook and authorised administrative procedures. Alerts, summaries and workflow actions support the approval process. They do not replace statutory scrutiny, verification, inspections or decisions that must be taken by the competent authority.

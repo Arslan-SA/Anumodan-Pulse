@@ -7,6 +7,7 @@ Aggregates all v1 endpoint routers under a single ``/api/v1`` prefix.
 from fastapi import APIRouter
 
 from app.api.v1.endpoints import (
+    ai,
     applications,
     auth,
     compliance,
@@ -58,3 +59,7 @@ router.include_router(
 # ── Phase 8: Dashboard Analytics & Reports ──────────────────────────────
 router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
 router.include_router(reports.router, prefix="/reports", tags=["Reports"])
+
+# ── Phase 9: AI Insights & Workflow Intelligence ────────────────────────
+router.include_router(ai.router, prefix="/ai", tags=["AI Insights & Workflow Intelligence"])
+

@@ -1,15 +1,18 @@
 import React, { useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
+    AlertCircle,
     ArrowRight,
     CalendarClock,
     CheckCircle2,
     ClipboardCheck,
     FileText,
     MessageSquareWarning,
+    RefreshCw,
     RotateCcw,
     Send,
     ShieldAlert,
+    Sparkles,
     UserCog,
 } from 'lucide-react';
 import { PageHead } from '../components/AppShell';
@@ -32,6 +35,7 @@ import { ROLE_LABELS } from '../types';
 import { daysBetween, fmtDate, fmtDateTime, fmtRelative } from '../lib/dates';
 import { appRisk, daysPending, isActive, isClosed, scopeApplications, stageDaysElapsed } from '../lib/calc';
 import { canActOn, can } from '../lib/perms';
+import { fetchApplicationAISummary, type AIApplicationSummary } from '../lib/aiApi';
 
 type TabId = 'overview' | 'workflow' | 'documents' | 'observations' | 'activity';
 
@@ -60,6 +64,33 @@ export default function ApplicationDetailPage() {
         reason: '',
         error: '',
     });
+
+    const [aiSummary, setAiSummary] = useState<AIApplicationSummary | null>(null);
+    const [aiLoading, setAiLoading] = useState<boolean>(false);
+    const [aiError, setAiError] = useState<string | null>(null);
+
+    const loadAiSummary = () => {
+        if (!app) return;
+        setAiLoading(true);
+        setAiError(null);
+        fetchApplicationAISummary(app.id, {
+            applicationNumber: app.applicationNumber || app.id,
+            institutionName: app.institutionName,
+            applicationType: app.applicationType,
+            academicYear: app.academicYear || '2026-2027',
+            currentStage: app.currentStageName,
+            status: app.status,
+        })
+            .then((data) => setAiSummary(data))
+            .catch((err) => setAiError(err?.message || 'Failed to generate advisory summary'))
+            .finally(() => setAiLoading(false));
+    };
+
+    React.useEffect(() => {
+        if (app && tab === 'overview' && !aiSummary && !aiLoading) {
+            loadAiSummary();
+        }
+    }, [app?.id, tab]);
 
     const inScope = useMemo(
         () => (app ? scopeApplications(user, [app], state.evcVisits).length > 0 : false),
@@ -260,6 +291,153 @@ export default function ApplicationDetailPage() {
                                             ? ` A regulatory decision of ${app.decision.outcome} was recorded on ${fmtDate(app.decision.at)}.`
                                             : ' No regulatory decision has been recorded yet.'}
                                     </p>
+                                </section>
+
+                                <section
+                                    className="card p16"
+                                    style={{
+                                        background: 'linear-gradient(180deg, rgba(238, 242, 255, 0.5) 0%, rgba(248, 250, 252, 0.8) 100%)',
+                                        border: '1px solid #c7d2fe',
+                                        borderRadius: '8px',
+                                    }}
+                                >
+                                    <div className="row between align-center mb12">
+                                        <div className="row align-center gap8">
+                                            <span
+                                                style={{
+                                                    display: 'inline-flex',
+                                                    padding: '4px 8px',
+                                                    borderRadius: '4px',
+                                                    background: '#e0e7ff',
+                                                    color: '#3730a3',
+                                                    fontSize: '12px',
+                                                    fontWeight: 600,
+                                                    alignItems: 'center',
+                                                    gap: '4px',
+                                                }}
+                                            >
+                                                <Sparkles size={13} /> AI Advisory Summary
+                                            </span>
+                                            {aiSummary && (
+                                                <span className="muted small">
+                                                    Provider: {aiSummary.provider} ({aiSummary.model})
+                                                </span>
+                                            )}
+                                        </div>
+                                        <button
+                                            className="btn btn--sm"
+                                            onClick={loadAiSummary}
+                                            disabled={aiLoading}
+                                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                        >
+                                            <RefreshCw size={13} className={aiLoading ? 'animate-spin' : ''} />
+                                            {aiLoading ? 'Synthesizing...' : 'Refresh'}
+                                        </button>
+                                    </div>
+
+                                    {/* Advisory Notice */}
+                                    <div
+                                        style={{
+                                            background: '#fffbeb',
+                                            borderLeft: '3px solid #f59e0b',
+                                            padding: '8px 12px',
+                                            borderRadius: '4px',
+                                            fontSize: '12px',
+                                            color: '#92400e',
+                                            marginBottom: '12px',
+                                        }}
+                                    >
+                                        <strong>Advisory Notice:</strong> AI-generated insights are synthesized directly from verified database records.
+                                        They are strictly advisory and require official review by authorized AICTE personnel; they do not constitute statutory approvals.
+                                    </div>
+
+                                    {aiLoading && (
+                                        <div className="p16 text-center muted small">
+                                            <RefreshCw size={16} className="animate-spin mb8" />
+                                            <div>Synthesizing structured database records and workflow history...</div>
+                                        </div>
+                                    )}
+
+                                    {aiError && (
+                                        <div
+                                            style={{
+                                                padding: '12px',
+                                                background: '#fef2f2',
+                                                border: '1px solid #fecaca',
+                                                borderRadius: '6px',
+                                                color: '#b91c1c',
+                                                fontSize: '13px',
+                                            }}
+                                        >
+                                            <div className="row align-center gap6 mb4 font-semibold">
+                                                <AlertCircle size={14} /> AI Synthesis Unavailable
+                                            </div>
+                                            <p className="small mb8">{aiError}</p>
+                                            <button className="btn btn--sm" onClick={loadAiSummary}>
+                                                Retry
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {aiSummary && !aiLoading && (
+                                        <div className="col gap12">
+                                            <div>
+                                                <h4 className="small font-semibold mb4" style={{ color: '#1e293b' }}>
+                                                    Executive Briefing
+                                                </h4>
+                                                <p className="small" style={{ color: '#334155', lineHeight: 1.5 }}>
+                                                    {aiSummary.executive_summary}
+                                                </p>
+                                            </div>
+
+                                            {aiSummary.outstanding_actions && aiSummary.outstanding_actions.length > 0 && (
+                                                <div>
+                                                    <h4 className="small font-semibold mb4" style={{ color: '#1e293b' }}>
+                                                        Outstanding Action Items ({aiSummary.outstanding_actions.length})
+                                                    </h4>
+                                                    <ul style={{ paddingLeft: '18px', margin: 0, fontSize: '12.5px', color: '#475569' }}>
+                                                        {aiSummary.outstanding_actions.map((act, idx) => (
+                                                            <li key={idx} style={{ marginBottom: '4px' }}>
+                                                                {act}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            {aiSummary.key_recommendations && aiSummary.key_recommendations.length > 0 && (
+                                                <div>
+                                                    <h4 className="small font-semibold mb4" style={{ color: '#1e293b' }}>
+                                                        Advisory Recommendations
+                                                    </h4>
+                                                    <ul style={{ paddingLeft: '18px', margin: 0, fontSize: '12.5px', color: '#475569' }}>
+                                                        {aiSummary.key_recommendations.map((rec, idx) => (
+                                                            <li key={idx} style={{ marginBottom: '4px' }}>
+                                                                {rec}
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                </div>
+                                            )}
+
+                                            <div className="row gap16 pt8" style={{ borderTop: '1px solid #e2e8f0', fontSize: '11.5px', color: '#64748b' }}>
+                                                <span>
+                                                    <strong>Verified Attachments:</strong> {aiSummary.documents_summary?.total_documents ?? 0} file(s)
+                                                </span>
+                                                {aiSummary.documents_summary?.expired_count ? (
+                                                    <span style={{ color: '#dc2626' }}>
+                                                        <strong>Expired:</strong> {aiSummary.documents_summary.expired_count} document(s)
+                                                    </span>
+                                                ) : null}
+                                                <span>
+                                                    <strong>Completed Stages:</strong> {aiSummary.completed_stages_count}
+                                                </span>
+                                                <span>
+                                                    <strong>Days in Process:</strong> {aiSummary.days_pending} day(s)
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </section>
 
                                 {visit && (
