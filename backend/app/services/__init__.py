@@ -1,6 +1,11 @@
 """
-AICTE FlowOps — Service / Business-Logic Layer Package
-
-Service modules encapsulate business logic and are called by endpoint
-handlers. Services will be added in later phases.
+AICTE FlowOps — Service Layer Registry
 """
+
+from app.services.institution_service import InstitutionService
+from app.services.application_service import ApplicationService
+
+__all__ = [
+    "InstitutionService",
+    "ApplicationService",
+]
