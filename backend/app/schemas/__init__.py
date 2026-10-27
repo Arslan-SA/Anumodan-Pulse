@@ -59,6 +59,27 @@ from app.schemas.reminder_rule import (
     ReminderRuleUpdate,
 )
 from app.schemas.escalation import EscalationHistoryResponse
+from app.schemas.dashboard import (
+    AgeingBuckets,
+    AlertsAnalyticsResponse,
+    AlertsSummary,
+    ApplicationAnalyticsResponse,
+    ApplicationSummary,
+    ComplianceAnalyticsResponse,
+    ComplianceSummary,
+    DashboardOverviewResponse,
+    DocumentExpiryBreakdown,
+    PeriodCountItem,
+    RecentActivityItem,
+    StageCountItem,
+    WorkflowAnalyticsResponse,
+)
+from app.schemas.report import (
+    ApplicationReportRow,
+    ComplianceReportRow,
+    DocumentReportRow,
+    OverdueReportRow,
+)
 
 __all__ = [
     "PaginatedResponse",
@@ -110,6 +131,23 @@ __all__ = [
     "ReminderRuleStatusUpdate",
     "ReminderRuleResponse",
     "EscalationHistoryResponse",
+    "RecentActivityItem",
+    "ApplicationSummary",
+    "ComplianceSummary",
+    "AlertsSummary",
+    "DashboardOverviewResponse",
+    "PeriodCountItem",
+    "ApplicationAnalyticsResponse",
+    "StageCountItem",
+    "AgeingBuckets",
+    "WorkflowAnalyticsResponse",
+    "DocumentExpiryBreakdown",
+    "ComplianceAnalyticsResponse",
+    "AlertsAnalyticsResponse",
+    "ApplicationReportRow",
+    "ComplianceReportRow",
+    "OverdueReportRow",
+    "DocumentReportRow",
 ]
 
 

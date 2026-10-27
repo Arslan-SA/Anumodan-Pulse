@@ -252,6 +252,118 @@ Rules live in `src/config/rules.ts`: route templates, stage timelines, reminder 
 | Integration with AICTE systems | Not included | Adapter layer for existing authorised systems |
 | Document storage | Simulated | Secure object storage |
 
+## Phase 8: Dashboard Analytics and Reporting APIs
+
+The backend provides high-performance, database-level SQL aggregations and reporting endpoints strictly scoped by user roles. All calculations use database engines rather than fetching records into memory, ensuring zero sample hardcoding and instant responses even under heavy data load.
+
+### Dashboard Endpoints
+
+| Method | Endpoint | Allowed Roles | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/dashboard/overview` | All authenticated roles | High-level summary counters, status breakdowns, pending action counts, and recent chronological transitions. |
+| `GET` | `/api/v1/dashboard/applications` | All authenticated roles | Application volume metrics, status distribution, application types, academic year breakdowns, and monthly submission trends. |
+| `GET` | `/api/v1/dashboard/workflow` | All authenticated roles | Active application load by workflow stage, pending ageing buckets (`<30d`, `30-60d`, `60-90d`, `>90d`), average turnaround duration, and recent transitions. |
+| `GET` | `/api/v1/dashboard/compliance` | All authenticated roles | Compliance and undertaking status breakdown, fulfillment rates (`verified/total %`), overdue counts, and document validity/expiration buckets. |
+| `GET` | `/api/v1/dashboard/alerts` | All authenticated roles | Alerts breakdown by read status, urgency level (`LOW`, `MEDIUM`, `HIGH`, `CRITICAL`), notification event types, and supervisor escalation records. |
+
+#### Role Access & Isolation Rules
+- **Institution User (`INSTITUTION_USER`)**:
+  - Automatically and strictly isolated to records belonging to their linked `institution_id`.
+  - Attempting to pass another institution's ID in query parameters immediately returns `403 Forbidden`.
+  - Sees their own institution's active applications, pending clarifications, upcoming deadlines, and user-directed alerts.
+- **AICTE Official (`AICTE_OFFICIAL`) & Administrator (`ADMIN`)**:
+  - Full system-wide visibility across all institutions.
+  - Optional `institution_id` query parameter to drill down into a single institution's analytics.
+  - Access to statutory supervisor escalation logs and system-wide workload distribution.
+- **Reviewer (`REVIEWER`)**:
+  - Scoped strictly to applications assigned to the reviewer.
+  - Unassigned reviewer sessions return clean zeroed metrics without crashing.
+
+#### Example Overview Response (`GET /api/v1/dashboard/overview`)
+```json
+{
+  "role": "INSTITUTION_USER",
+  "institution_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "application_summary": {
+    "total": 4,
+    "draft": 1,
+    "submitted": 1,
+    "under_scrutiny": 1,
+    "returned_for_clarification": 1,
+    "evc_pending": 0,
+    "evc_scheduled": 0,
+    "under_review": 0,
+    "approved": 0,
+    "rejected": 0,
+    "closed": 0,
+    "requires_action": 1
+  },
+  "compliance_summary": {
+    "total": 3,
+    "pending": 1,
+    "submitted": 1,
+    "under_verification": 0,
+    "verified": 1,
+    "rejected": 0,
+    "overdue": 0,
+    "upcoming_deadlines": 1,
+    "expiring_documents_30_days": 1,
+    "expired_documents": 0
+  },
+  "alerts_summary": {
+    "unread": 2,
+    "total": 5,
+    "critical": 0,
+    "overdue": 0,
+    "escalations_count": 0
+  },
+  "recent_activity": [
+    {
+      "id": "c1f7b025-a134-4b5c-b179-c5d0124ad302",
+      "activity_type": "stage_transition",
+      "application_id": "8f3b204e-eef0-4965-b1a9-b6973946eb2c",
+      "application_number": "APP-2026-A1B2C3",
+      "title": "Stage transition: Scrutiny Review Completed",
+      "description": "All infrastructure norms verified",
+      "status": "UNDER_SCRUTINY",
+      "timestamp": "2026-10-27T10:15:00Z",
+      "acted_by": "Regional Officer Sharma"
+    }
+  ]
+}
+```
+
+---
+
+### Reporting & Data Export Endpoints
+
+| Method | Endpoint | Query Parameters | Description |
+|---|---|---|---|
+| `GET` | `/api/v1/reports/applications` | `start_date`, `end_date`, `status`, `workflow_stage`, `institution_id`, `format`, `page`, `page_size` | Application summary report with pendency days, stage progression, and status. |
+| `GET` | `/api/v1/reports/compliance` | `status`, `compliance_type`, `institution_id`, `start_date`, `end_date`, `format`, `page`, `page_size` | Compliance audit report with due dates, verification status, and overdue flags. |
+| `GET` | `/api/v1/reports/overdue` | `institution_id`, `entity_type` (`application` or `compliance`), `format`, `page`, `page_size` | Combined overdue and ageing tracking (>30 days pending applications and overdue compliance). |
+| `GET` | `/api/v1/reports/documents` | `institution_id`, `days_window` (default 30), `document_type`, `format`, `page`, `page_size` | Document metadata, size, upload timestamp, and expiration validity status. |
+
+#### CSV Export Usage
+To export any report directly as a downloadable CSV spreadsheet, provide the query parameter `format=csv`:
+
+```bash
+# Export applications report for your institution (or all institutions if admin/official)
+curl -H "Authorization: Bearer <TOKEN>" \
+  "https://api.flowops.aicte.gov.in/api/v1/reports/applications?format=csv&status=SUBMITTED" \
+  -o applications_report.csv
+
+# Export overdue compliance and ageing cases
+curl -H "Authorization: Bearer <TOKEN>" \
+  "https://api.flowops.aicte.gov.in/api/v1/reports/overdue?format=csv" \
+  -o overdue_report.csv
+```
+
+The CSV response includes:
+- Content-Type: `text/csv; charset=utf-8`
+- Header: `Content-Disposition: attachment; filename="<report_name>_<YYYY-MM-DD>.csv"`
+- Standard headers matching tabular views, properly escaped against comma/newline injections.
+
 ## Regulatory safeguard
 
 Pravah is designed to function in accordance with the applicable AICTE regulations, the Approval Process Handbook and authorised administrative procedures. Alerts, summaries and workflow actions support the approval process. They do not replace statutory scrutiny, verification, inspections or decisions that must be taken by the competent authority.

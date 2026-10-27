@@ -9,6 +9,8 @@ from app.services.compliance_service import ComplianceService
 from app.services.document_service import DocumentService
 from app.services.notification_service import NotificationService
 from app.services.deadline_service import DeadlineService
+from app.services.dashboard_service import DashboardService
+from app.services.report_service import ReportService
 
 __all__ = [
     "InstitutionService",
@@ -18,6 +20,8 @@ __all__ = [
     "DocumentService",
     "NotificationService",
     "DeadlineService",
+    "DashboardService",
+    "ReportService",
 ]
 
 

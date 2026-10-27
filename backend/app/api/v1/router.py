@@ -11,11 +11,13 @@ from app.api.v1.endpoints import (
     auth,
     compliance,
     compliance_requirements,
+    dashboard,
     documents,
     health,
     institutions,
     notifications,
     reminder_rules,
+    reports,
     users,
     workflows,
 )
@@ -53,5 +55,6 @@ router.include_router(
     tags=["Reminder Rules & Escalations"],
 )
 
-
-
+# ── Phase 8: Dashboard Analytics & Reports ──────────────────────────────
+router.include_router(dashboard.router, prefix="/dashboard", tags=["Dashboard"])
+router.include_router(reports.router, prefix="/reports", tags=["Reports"])
