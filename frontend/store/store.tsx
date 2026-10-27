@@ -15,6 +15,7 @@ import type {
 import { createSeedState, DEMO_PASSWORD, loadPersisted, persist, clearPersisted } from '../data/seed';
 import { addDays, toDate } from '../lib/dates';
 import { appRisk, undertakingRisk, docExpiry } from '../lib/calc';
+import { authApi } from '../lib/api';
 
 export interface ToastItem {
     id: string;
@@ -31,7 +32,7 @@ export interface StoreContextType {
     toast: (opts: { title: string; body?: string; tone?: 'info' | 'success' | 'warning' | 'error' }) => void;
     dismissToast: (id: string) => void;
     login: (userId: string) => void;
-    loginWithEmail: (email: string, password: string) => { ok: boolean; error?: string };
+    loginWithEmail: (email: string, password: string) => Promise<{ ok: boolean; error?: string }> | { ok: boolean; error?: string };
     logout: () => void;
     switchUser: (userId: string) => void;
     advanceClock: (days: number) => void;
@@ -155,7 +156,48 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         });
     };
 
-    const loginWithEmail = (email: string, password: string) => {
+    const loginWithEmail = async (email: string, password: string): Promise<{ ok: boolean; error?: string }> => {
+        // 1. Try live backend API authentication first
+        try {
+            const res = await authApi.login(email, password);
+            if (res && res.access_token) {
+                let u = state.users.find((item) => item.email.toLowerCase() === email.trim().toLowerCase());
+                if (!u) {
+                    const roleMap: Record<string, Role> = {
+                        ADMIN: 'admin',
+                        AICTE_OFFICIAL: 'officer',
+                        INSTITUTION_USER: 'institution',
+                        REVIEWER: 'committee',
+                    };
+                    const mappedRole = roleMap[res.user.role] || 'admin';
+                    const newUser: User = {
+                        id: res.user.id,
+                        name: res.user.full_name,
+                        email: res.user.email,
+                        role: mappedRole,
+                        department: 'AICTE Office',
+                        institutionId: res.user.institution_id || undefined,
+                        status: 'Active',
+                    };
+                    setState((prev) => ({
+                        ...prev,
+                        users: [newUser, ...prev.users],
+                        sessionUserId: newUser.id,
+                    }));
+                } else {
+                    login(u.id);
+                }
+                return { ok: true };
+            }
+        } catch (apiErr: any) {
+            // If backend actively rejected credentials with 401/403, report exact error
+            if (apiErr?.status === 401 || apiErr?.status === 403) {
+                return { ok: false, error: apiErr.message || 'Invalid email or password.' };
+            }
+            // For network errors (backend offline in local demo), fallback to demo store accounts below
+        }
+
+        // 2. Fallback to demo store credentials
         const u = state.users.find((item) => item.email.toLowerCase() === email.trim().toLowerCase());
         if (!u) {
             return { ok: false, error: 'No user registered with this email address.' };
@@ -168,6 +210,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     };
 
     const logout = () => {
+        authApi.logout();
         if (user) {
             addAuditEntry({
                 userId: user.id,

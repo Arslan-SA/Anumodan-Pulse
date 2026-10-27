@@ -77,6 +77,14 @@ class Settings(BaseSettings):
                 )
 
     @property
+    def normalized_database_url(self) -> str:
+        """Normalize Render/Heroku/AWS postgres:// URLs to SQLAlchemy compatible postgresql://."""
+        url = self.database_url
+        if url.startswith("postgres://"):
+            return url.replace("postgres://", "postgresql://", 1)
+        return url
+
+    @property
     def cors_origin_list(self) -> list[str]:
         """Return CORS origins as a list."""
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

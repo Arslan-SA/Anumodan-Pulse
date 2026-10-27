@@ -408,6 +408,153 @@ The AI intelligence subsystem operates within strict safety boundaries:
 4. **Mandatory Advisory Disclaimer**: Every response contains:
    > *"Advisory AI-generated insight. Requires human verification by an authorized official; does not constitute a statutory or regulatory decision."*
 
+---
+
+## Phase 10: Final Integration, Security Hardening, Testing & Deployment Readiness
+
+Phase 10 consolidates, hardens, tests, and prepares both the backend and frontend for production deployment on Render and Vercel.
+
+### 1. Security Hardening & Regulatory Decision Boundaries
+
+- **Password Cryptography**: Passwords are securely hashed using **Argon2id** (`pwdlib[argon2]`). Complex password validation enforces at least 8 characters, upper/lower case letters, digits, and special symbols.
+- **JWT Authentication & Token Lifecycle**: Signed with HMAC-SHA256 (`HS256`) including UTC issued-at (`iat`) and expiration (`exp`) timestamps. Expired, tampered, or missing tokens are strictly rejected with HTTP 401.
+- **Multi-Tenant Data Isolation**:
+  - `INSTITUTION_USER` accounts can only access records belonging to their own affiliated institution. Attempting to access another institution's applications, compliance records, or documents yields HTTP 404/403 to prevent ID enumeration.
+  - `REVIEWER` accounts can only access applications explicitly assigned to them.
+- **File Upload & Storage Security**:
+  - Magic byte verification (`_detect_mime_type_from_bytes`) inspects true binary headers, preventing spoofed file extensions.
+  - Allowed file types restricted strictly to `.pdf`, `.png`, `.jpg`, `.jpeg`, `.doc`, `.docx`.
+  - File size restricted by `STORAGE_MAX_FILE_SIZE_MB` (default 15MB).
+  - Filenames sanitized via `re.sub(r"[^a-zA-Z0-9_.-]", "_", ...)`.
+  - Storage keys are isolated by tenant (`institutions/{id}/{uuid}_{filename}`) and directory traversal attacks (`../`) are detected and blocked.
+- **Fail-Fast Production Safeguard**: When `APP_ENV=production`, `validate_production_security()` verifies that `JWT_SECRET_KEY` is a non-default secret with at least 32 characters, preventing deployment misconfigurations.
+- **Idempotent Background Jobs**: The statutory deadline scheduler enforces deduplication keys (`COMPL_DUE_SOON:{rec_id}:{due_date}:{days}:{user_id}` and `COMPL_OVERDUE:{rec_id}:{due_date}:{user_id}`) so repeated scheduler executions never create duplicate notifications.
+- **Human-in-the-Loop Decision Gate**: AI summaries and insights remain purely advisory. Final approvals, conditional approvals with undertakings, and rejections are strictly reserved for authorized human officials.
+
+---
+
+### 2. Deployment Guide
+
+#### Backend Deployment (Render)
+
+The backend is configured for deployment as a Web Service on **Render** with PostgreSQL.
+
+1. **Blueprints / IaC (`render.yaml`)**:
+   Connect the GitHub repository in the Render dashboard and deploy using the included `render.yaml` blueprint.
+2. **Environment Variables on Render**:
+   - `APP_ENV=production`
+   - `DEBUG=false`
+   - `DATABASE_URL` (linked from Render PostgreSQL service)
+   - `JWT_SECRET_KEY` (secure 32+ character random string)
+   - `CORS_ORIGINS=https://<your-vercel-domain>.vercel.app`
+   - `STORAGE_BACKEND=local` (or `s3` for object storage)
+   - `ENABLE_SCHEDULER=true`
+   - `AI_ENABLED=true`
+   - `AI_PROVIDER=deterministic` (or `gemini` with `AI_API_KEY`)
+3. **Build & Start Commands**:
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `./start.sh` (automatically applies `alembic upgrade head` then starts `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2`)
+   - **Health Check Path**: `/health` (responds 200 OK with `status: healthy`)
+
+Alternatively, containerized deployments can build using `backend/Dockerfile` with non-root security user `aicte`.
+
+#### Frontend Deployment (Vercel)
+
+The frontend is built with React 18, TypeScript, and Vite.
+
+1. **Connect Repository to Vercel**:
+   - **Framework Preset**: Vite
+   - **Root Directory**: `frontend`
+   - **Build Command**: `npm run build`
+   - **Output Directory**: `dist`
+2. **Environment Variables**:
+   - `VITE_API_BASE_URL=https://<your-render-backend>.onrender.com`
+3. **SPA Routing Rewrites (`frontend/vercel.json`)**:
+   Includes routing rewrites directing all non-asset paths to `/index.html`, ensuring deep links and page refreshes on `/applications`, `/dashboard`, and `/compliance` resolve correctly without 404s.
+
+---
+
+### 3. Local Development Setup
+
+#### Backend Setup
+
+```bash
+cd backend
+
+# 1. Create and activate virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
+# 2. Install dependencies
+pip install -r requirements.txt
+
+# 3. Configure environment
+cp .env.example .env
+# Edit .env with your local PostgreSQL credentials
+
+# 4. Apply database migrations
+alembic upgrade head
+
+# 5. Start development API server
+uvicorn app.main:app --reload --port 8000
+```
+Interactive API documentation will be available at `http://localhost:8000/docs`.
+
+#### Frontend Setup
+
+```bash
+cd frontend
+
+# 1. Install dependencies
+npm install
+
+# 2. Start Vite development server
+npm run dev
+```
+The application will launch on `http://localhost:3000` (with automatic `/api` proxying to `http://127.0.0.1:8000`).
+
+---
+
+### 4. Running Automated Tests
+
+```bash
+cd backend
+source venv/bin/activate
+
+# Run the complete test suite across all 10 phases
+pytest
+
+# Run with verbose test-by-test breakdown
+pytest -v
+
+# Run Phase 10 security hardening and integration tests specifically
+pytest -v tests/test_phase10_security_and_integration.py
+```
+
+---
+
+### 5. Safe Demonstration Accounts
+
+The platform includes configured demo profiles across all four primary administrative roles:
+
+| Role | Email | Password | Access Scope |
+|---|---|---|---|
+| **AICTE Administrator** | `admin@aicte-india.org` | `flowops2026` / `password` | System-wide configuration, reminder rules, bottleneck analytics, global reports |
+| **Regional Officer** | `officer@aicte.gov.in` | `flowops2026` / `password` | Regional scrutiny, EVC scheduling, compliance verification, regional dashboards |
+| **Institution Official** | `institute@college.edu` | `flowops2026` / `password` | Application drafting/submission, undertaking evidence uploads, document renewals |
+| **Committee Reviewer** | `committee@aicte.gov.in` | `flowops2026` / `password` | Assigned application scrutiny, EVC inspections, observation reports |
+
+---
+
+### 6. Known Limitations & Production Assumptions
+
+1. **Document Storage**: Configured by default to `local` disk storage in `./storage/uploads`. For multi-instance horizontal scaling, set `STORAGE_BACKEND=s3` and configure AWS S3 / Cloudflare R2 bucket credentials.
+2. **Statutory Rules & Deadlines**: The platform models statutory workflows and deadline alerts via configurable rules (`WorkflowTransition`, `ReminderRule`, `WorkflowStage.target_completion_days`) rather than hardcoding AICTE regulations, allowing officials to update rules per annual APH guidelines.
+3. **External Email / SMS Delivery**: Notifications are generated and stored in the database with real-time web delivery; external SMTP / SMS gateway adapters can be connected via the `NotificationService` dispatch hook.
+4. **AI Output Advisory Nature**: All AI executive briefings and workflow diagnostics are advisory and require human official review prior to any statutory action.
+
+---
+
 ## Regulatory safeguard
 
 Pravah is designed to function in accordance with the applicable AICTE regulations, the Approval Process Handbook and authorised administrative procedures. Alerts, summaries and workflow actions support the approval process. They do not replace statutory scrutiny, verification, inspections or decisions that must be taken by the competent authority.
@@ -420,4 +567,5 @@ Pravah is designed to function in accordance with the applicable AICTE regulatio
 
 ## License
 
-Released for Smart India Hackathon 2026. Add a license of your choice (for example MIT) before making the repository public.
+Released for Smart India Hackathon 2026.
+

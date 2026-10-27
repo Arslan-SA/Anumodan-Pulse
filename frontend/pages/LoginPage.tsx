@@ -46,7 +46,7 @@ export default function LoginPage() {
 
     if (user) return <Navigate to="/dashboard" replace />;
 
-    const submit = (e: React.FormEvent) => {
+    const submit = async (e: React.FormEvent) => {
         e.preventDefault();
         const next: typeof errors = {};
         if (!email.trim()) next.email = 'Enter your official email address.';
@@ -56,13 +56,13 @@ export default function LoginPage() {
         if (Object.keys(next).length) return;
 
         setBusy(true);
-        const res = loginWithEmail(email, password);
+        const res = await loginWithEmail(email, password);
         setBusy(false);
         if (!res.ok) {
             setErrors({ form: res.error });
             return;
         }
-        toast({ title: 'Signed in', body: 'Demonstration session started with sample data.', tone: 'success' });
+        toast({ title: 'Signed in', body: 'Session established securely with access token.', tone: 'success' });
     };
 
     const demoLogin = (role: Role, userId: string) => {

@@ -17,20 +17,24 @@ from app.api.v1.router import router as api_v1_router
 
 from app.services.scheduler import start_scheduler, stop_scheduler
 
+from datetime import datetime, timezone
+import logging
+
 settings = get_settings()
+logger = logging.getLogger("aicte_flowops")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan — startup / shutdown hooks."""
-    # Startup
-    print(f"🚀 AICTE FlowOps API starting in {settings.app_env} mode")
+    # Startup validation
+    settings.validate_production_security()
+    logger.info(f"AICTE FlowOps API starting in {settings.app_env} mode")
     start_scheduler()
     yield
     # Shutdown
     stop_scheduler()
-    print("👋 AICTE FlowOps API shutting down")
-
+    logger.info("AICTE FlowOps API shutting down")
 
 
 def create_app() -> FastAPI:
@@ -56,6 +60,26 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    # ── Root Probes (for Cloud PaaS / Load Balancers) ───────────────
+    @app.get("/health", tags=["Health"], summary="Root Liveness Probe")
+    def root_health():
+        return {
+            "status": "healthy",
+            "environment": settings.app_env,
+            "version": "1.0.0",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
+    @app.get("/", tags=["Health"], summary="API Service Index")
+    def root_index():
+        return {
+            "name": "AICTE FlowOps API",
+            "status": "active",
+            "docs": "/docs",
+            "version": "1.0.0",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+
     # ── Routers ─────────────────────────────────────────────────────
     app.include_router(api_v1_router)
 
@@ -63,3 +87,4 @@ def create_app() -> FastAPI:
 
 
 app = create_app()
+
