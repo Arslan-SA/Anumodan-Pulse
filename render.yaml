@@ -24,14 +24,25 @@ services:
         value: "60"
       - key: CORS_ORIGINS
         value: https://aicte-flowops.vercel.app
+      # Cloud Object Storage (AWS S3-compatible cloud storage)
       - key: STORAGE_BACKEND
-        value: local
-      - key: STORAGE_LOCAL_PATH
-        value: ./storage/uploads
+        value: s3
+      - key: S3_BUCKET_NAME
+        sync: false
+      - key: S3_REGION
+        value: ap-south-1
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
+      - key: S3_ENDPOINT_URL
+        sync: false
+      # Background Jobs & Notifications
       - key: ENABLE_SCHEDULER
         value: "true"
       - key: SCHEDULER_INTERVAL_MINUTES
         value: "15"
+      # AI Workflow Intelligence
       - key: AI_ENABLED
         value: "true"
       - key: AI_PROVIDER

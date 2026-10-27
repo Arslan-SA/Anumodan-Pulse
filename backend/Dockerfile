@@ -25,9 +25,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy backend source code
 COPY . /app
 
-# Create storage upload directory and set non-root user permissions
-RUN mkdir -p /app/storage/uploads && \
-    useradd -u 1001 aicte && \
+# Set non-root user permissions for security
+RUN useradd -u 1001 aicte && \
     chown -R aicte:aicte /app
 
 USER aicte

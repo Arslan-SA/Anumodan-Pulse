@@ -64,8 +64,9 @@ class Settings(BaseSettings):
 
 
     def validate_production_security(self) -> None:
-        """Fail fast if secrets are insecure in production."""
+        """Fail fast if secrets, database, or cloud storage configuration are insecure in production."""
         if self.app_env.lower() == "production":
+            # 1. JWT Secret Key Validation
             if (
                 not self.jwt_secret_key
                 or "development" in self.jwt_secret_key
@@ -74,6 +75,38 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "CRITICAL SECURITY: In production mode, JWT_SECRET_KEY must be a secure random "
                     "string with at least 32 characters."
+                )
+
+            # 2. Managed PostgreSQL Validation (Render PostgreSQL)
+            db_lower = self.database_url.lower()
+            if "sqlite" in db_lower:
+                raise ValueError(
+                    "CRITICAL DATABASE CONFIGURATION: In production mode, SQLite is forbidden. "
+                    "Configure a managed PostgreSQL database via DATABASE_URL."
+                )
+            if "localhost" in db_lower or "127.0.0.1" in db_lower:
+                raise ValueError(
+                    "CRITICAL DATABASE CONFIGURATION: In production mode, local database host is forbidden. "
+                    "Configure a managed cloud PostgreSQL database (e.g. Render PostgreSQL) via DATABASE_URL."
+                )
+
+            # 3. Cloud Object Storage Validation (AWS S3-compatible cloud storage)
+            if self.storage_backend.lower() != "s3":
+                raise ValueError(
+                    "CRITICAL STORAGE CONFIGURATION: In production mode, local filesystem storage is forbidden. "
+                    "Set STORAGE_BACKEND=s3 and configure AWS S3-compatible cloud object storage."
+                )
+            if not self.s3_bucket_name or not self.s3_bucket_name.strip():
+                raise ValueError(
+                    "CRITICAL STORAGE CONFIGURATION: S3_BUCKET_NAME must be configured in production mode."
+                )
+            if not self.s3_access_key_id or not self.s3_access_key_id.strip():
+                raise ValueError(
+                    "CRITICAL STORAGE CONFIGURATION: S3_ACCESS_KEY_ID must be configured in production mode."
+                )
+            if not self.s3_secret_access_key or not self.s3_secret_access_key.strip():
+                raise ValueError(
+                    "CRITICAL STORAGE CONFIGURATION: S3_SECRET_ACCESS_KEY must be configured in production mode."
                 )
 
     @property

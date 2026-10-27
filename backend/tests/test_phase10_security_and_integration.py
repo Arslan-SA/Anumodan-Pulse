@@ -87,10 +87,15 @@ def test_production_security_validator_rejects_insecure_key():
 
 
 def test_production_security_validator_passes_with_strong_key():
-    """Accepts strong 32+ char key without 'development' in production."""
+    """Accepts strong 32+ char key without 'development' in production when cloud DB and S3 are configured."""
     s = Settings(
         app_env="production",
         jwt_secret_key="x9#K2$vL8!mP0@qR5*tW3&zY7^bC1%eF4(jH6)uN",
+        database_url="postgresql://user:secret@dpg-c1234567.oregon-postgres.render.com/aicte_flowops",
+        storage_backend="s3",
+        s3_bucket_name="aicte-documents-cloud",
+        s3_access_key_id="AKIAEXAMPLE12345",
+        s3_secret_access_key="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
     )
     # Should not raise
     s.validate_production_security()

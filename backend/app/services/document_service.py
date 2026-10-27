@@ -6,6 +6,7 @@ authorization boundaries, and document expiry tracking.
 """
 
 from datetime import datetime, timedelta, timezone
+import logging
 import math
 import os
 import re
@@ -13,7 +14,7 @@ from typing import BinaryIO, List, Optional, Tuple
 import uuid
 
 from fastapi import HTTPException, UploadFile, status
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
@@ -51,6 +52,9 @@ def _detect_mime_type_from_bytes(header: bytes) -> Optional[str]:
     if header.startswith(b"PK\x03\x04"):
         return "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     return None
+
+
+logger = logging.getLogger("aicte_flowops.document_service")
 
 
 class DocumentService:
@@ -177,9 +181,16 @@ class DocumentService:
         unique_token = uuid.uuid4().hex[:12]
         storage_key = f"institutions/{institution_id}/{unique_token}_{safe_base}"
 
-        # Write to storage abstraction
+        # Write to storage abstraction (direct to cloud object storage; no local disk files)
         storage = get_storage_backend()
-        storage.save(storage_key, file.file, content_type=detected_mime)
+        try:
+            storage.save(storage_key, file.file, content_type=detected_mime)
+        except Exception as e:
+            logger.error(f"Failed to persist document '{storage_key}' to cloud storage: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Cloud document storage service is currently unavailable. Please try again later.",
+            )
 
         # Register metadata in database
         doc = Document(
@@ -258,28 +269,38 @@ class DocumentService:
                 detail="The requested document file could not be found on storage.",
             )
 
-        if settings.storage_backend == "local":
-            local_path = storage.get_local_path(doc.storage_key)
-            if not local_path or not os.path.exists(local_path):
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Local file not found.",
-                )
-            # Sanitize filename for download header
-            clean_filename = re.sub(r'[^\w\s.-]', '_', doc.document_name)
+        clean_filename = re.sub(r'[^\w\s.-]', '_', doc.document_name)
+        ext = os.path.splitext(doc.storage_key)[1]
+
+        local_path = storage.get_local_path(doc.storage_key)
+        if local_path and os.path.exists(local_path):
             return FileResponse(
                 path=local_path,
                 media_type=doc.mime_type or "application/octet-stream",
-                filename=f"{clean_filename}{os.path.splitext(doc.storage_key)[1]}",
+                filename=f"{clean_filename}{ext}",
             )
         else:
-            download_url = storage.get_download_url(doc.storage_key)
-            if not download_url:
-                raise HTTPException(
-                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                    detail="Failed to generate secure download URL.",
+            # S3 / Cloud storage in-memory streaming directly to client (no local disk persistence)
+            try:
+                stream = storage.get(doc.storage_key)
+                return StreamingResponse(
+                    stream,
+                    media_type=doc.mime_type or "application/octet-stream",
+                    headers={
+                        "Content-Disposition": f'attachment; filename="{clean_filename}{ext}"'
+                    },
                 )
-            return RedirectResponse(url=download_url)
+            except FileNotFoundError:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="The requested document file could not be found on cloud storage.",
+                )
+            except Exception as e:
+                logger.error(f"Failed to stream document '{doc.storage_key}' from cloud storage: {e}")
+                raise HTTPException(
+                    status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                    detail="Cloud storage service is currently unavailable. Please try again later.",
+                )
 
     @staticmethod
     def delete_document(

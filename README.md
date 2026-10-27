@@ -437,23 +437,40 @@ Phase 10 consolidates, hardens, tests, and prepares both the backend and fronten
 
 #### Backend Deployment (Render)
 
-The backend is configured for deployment as a Web Service on **Render** with PostgreSQL.
+The backend is configured for production deployment as a Web Service on **Render** with managed PostgreSQL and cloud object storage.
 
 1. **Blueprints / IaC (`render.yaml`)**:
-   Connect the GitHub repository in the Render dashboard and deploy using the included `render.yaml` blueprint.
-2. **Environment Variables on Render**:
+   Connect the GitHub repository in the Render dashboard and deploy using the included `render.yaml` blueprint. The blueprint automatically provisions:
+   - A managed Render PostgreSQL database (`aicte-flowops-db`).
+   - A Python 3.12 Web Service (`aicte-flowops-backend`) wired to `DATABASE_URL`.
+2. **Database Configuration (Managed Cloud PostgreSQL)**:
+   - In production (`APP_ENV=production`), the backend strictly enforces managed cloud PostgreSQL provided via `DATABASE_URL`.
+   - SQLite, local disk databases, and `localhost`/`127.0.0.1` URLs are strictly rejected at startup with fail-fast validation.
+   - Database migrations are automatically applied on every deployment via `./start.sh` using `alembic upgrade head`.
+3. **Document Storage (AWS S3-Compatible Cloud Object Storage)**:
+   - In production (`APP_ENV=production`), all statutory documents, undertakings, and lease renewals are stored in cloud object storage (`STORAGE_BACKEND=s3`).
+   - Document bytes stream directly between the cloud storage bucket and authenticated clients; no document files or temporary bytes are stored on the backend container's local disk.
+   - Compatible with **AWS S3**, **Cloudflare R2**, and **MinIO**.
+   - Server-side credentials remain strictly protected on the backend and are never exposed to the frontend or clients.
+   - If cloud storage is temporarily unreachable, the API returns a graceful `HTTP 503 Service Unavailable` error instead of unhandled crashes.
+4. **Environment Variables on Render**:
    - `APP_ENV=production`
    - `DEBUG=false`
-   - `DATABASE_URL` (linked from Render PostgreSQL service)
+   - `DATABASE_URL` (linked automatically from Render PostgreSQL service)
    - `JWT_SECRET_KEY` (secure 32+ character random string)
    - `CORS_ORIGINS=https://<your-vercel-domain>.vercel.app`
-   - `STORAGE_BACKEND=local` (or `s3` for object storage)
+   - `STORAGE_BACKEND=s3`
+   - `S3_BUCKET_NAME=<your-s3-or-r2-bucket-name>`
+   - `S3_REGION=ap-south-1` (or your bucket region)
+   - `S3_ACCESS_KEY_ID=<your-cloud-storage-access-key>`
+   - `S3_SECRET_ACCESS_KEY=<your-cloud-storage-secret-key>`
+   - `S3_ENDPOINT_URL=` *(optional: set for Cloudflare R2 e.g. `https://<account_id>.r2.cloudflarestorage.com` or MinIO)*
    - `ENABLE_SCHEDULER=true`
    - `AI_ENABLED=true`
    - `AI_PROVIDER=deterministic` (or `gemini` with `AI_API_KEY`)
-3. **Build & Start Commands**:
+5. **Build & Start Commands**:
    - **Build Command**: `pip install -r requirements.txt`
-   - **Start Command**: `./start.sh` (automatically applies `alembic upgrade head` then starts `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2`)
+   - **Start Command**: `./start.sh` (applies `alembic upgrade head` then starts `uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2`)
    - **Health Check Path**: `/health` (responds 200 OK with `status: healthy`)
 
 Alternatively, containerized deployments can build using `backend/Dockerfile` with non-root security user `aicte`.
@@ -548,7 +565,7 @@ The platform includes configured demo profiles across all four primary administr
 
 ### 6. Known Limitations & Production Assumptions
 
-1. **Document Storage**: Configured by default to `local` disk storage in `./storage/uploads`. For multi-instance horizontal scaling, set `STORAGE_BACKEND=s3` and configure AWS S3 / Cloudflare R2 bucket credentials.
+1. **Document Storage**: Supports both cloud object storage (AWS S3, Cloudflare R2, MinIO) and local filesystem storage. In production (`APP_ENV=production`), cloud storage is strictly required (`STORAGE_BACKEND=s3`), ensuring that no files are persisted locally on the backend host and horizontal multi-instance scaling is fully supported. For local offline development, `STORAGE_BACKEND=local` can be used.
 2. **Statutory Rules & Deadlines**: The platform models statutory workflows and deadline alerts via configurable rules (`WorkflowTransition`, `ReminderRule`, `WorkflowStage.target_completion_days`) rather than hardcoding AICTE regulations, allowing officials to update rules per annual APH guidelines.
 3. **External Email / SMS Delivery**: Notifications are generated and stored in the database with real-time web delivery; external SMTP / SMS gateway adapters can be connected via the `NotificationService` dispatch hook.
 4. **AI Output Advisory Nature**: All AI executive briefings and workflow diagnostics are advisory and require human official review prior to any statutory action.
