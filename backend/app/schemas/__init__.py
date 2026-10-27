@@ -1,6 +1,15 @@
 """
-AICTE FlowOps — Pydantic Schemas Package
-
-All Pydantic v2 request / response schemas live here.
-Schemas will be added in later phases alongside their respective endpoints.
+AICTE FlowOps — Schemas Registry
 """
+
+from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
+from app.schemas.user import UserResponse, UserRoleUpdate, UserStatusUpdate
+
+__all__ = [
+    "RegisterRequest",
+    "LoginRequest",
+    "TokenResponse",
+    "UserResponse",
+    "UserStatusUpdate",
+    "UserRoleUpdate",
+]

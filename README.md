@@ -159,18 +159,42 @@ createdb aicte_flowops
 # 5. Run migrations
 alembic upgrade head
 
-# 6. Start the API server
+# 6. Bootstrap the initial administrator
+python -m app.cli.create_admin --name "Dr. Initial Admin" --email "admin@aicte.gov.in"
+
+# 7. Start the API server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 
-# 7. Run tests
+# 8. Run tests
 pytest -v
 ```
 
-**Verify:** Open http://localhost:8000/docs for Swagger UI, or hit the health endpoint:
+### Authentication & RBAC
 
+| Role | Scope & Permissions |
+|---|---|
+| `ADMIN` | User management, system configuration, global oversight |
+| `AICTE_OFFICIAL` | Regional scrutiny, EVC coordination, compliance verification |
+| `INSTITUTION_USER` | Submit applications, evidence uploads, compliance renewals |
+| `REVIEWER` | Committee member, assigned EVC visits and expert reviews |
+
+#### Environment Variables
+```env
+JWT_SECRET_KEY=aicte-flowops-development-secret-key-at-least-32-chars-long-2026
+JWT_ALGORITHM=HS256
+JWT_ACCESS_TOKEN_EXPIRE_MINUTES=60
+```
+
+#### Obtaining and Using a Bearer Token
 ```bash
-curl http://localhost:8000/api/v1/health
-# {"status":"healthy","environment":"development","version":"1.0.0","timestamp":"..."}
+# Login
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"admin@aicte.gov.in","password":"YourPassword@2026!"}'
+
+# Use Bearer token for protected endpoints
+curl http://localhost:8000/api/v1/auth/me \
+  -H "Authorization: Bearer <ACCESS_TOKEN>"
 ```
 
 ## Project structure

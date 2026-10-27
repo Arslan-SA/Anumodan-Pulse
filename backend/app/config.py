@@ -32,6 +32,24 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
 
+    # ── JWT Authentication ──────────────────────────────────────────────
+    jwt_secret_key: str = "aicte-flowops-development-secret-key-at-least-32-chars-long-2026"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 60
+
+    def validate_production_security(self) -> None:
+        """Fail fast if secrets are insecure in production."""
+        if self.app_env.lower() == "production":
+            if (
+                not self.jwt_secret_key
+                or "development" in self.jwt_secret_key
+                or len(self.jwt_secret_key) < 32
+            ):
+                raise ValueError(
+                    "CRITICAL SECURITY: In production mode, JWT_SECRET_KEY must be a secure random "
+                    "string with at least 32 characters."
+                )
+
     @property
     def cors_origin_list(self) -> list[str]:
         """Return CORS origins as a list."""

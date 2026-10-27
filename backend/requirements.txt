@@ -1,9 +1,12 @@
 # AICTE FlowOps — Backend Dependencies
 # Phase 1: Foundation
+# Phase 2: Core Domain Models
+# Phase 3: Authentication, Authorization & RBAC
 
 # Web framework
 fastapi==0.115.6
 uvicorn[standard]==0.34.0
+python-multipart==0.0.20
 
 # Database
 sqlalchemy==2.0.36
@@ -13,6 +16,11 @@ alembic==1.14.1
 # Validation / Settings
 pydantic==2.10.4
 pydantic-settings==2.7.1
+email-validator>=2.2.0
+
+# Security & Authentication
+pwdlib[argon2]==0.2.1
+pyjwt>=2.10.1
 
 # Environment
 python-dotenv==1.0.1
