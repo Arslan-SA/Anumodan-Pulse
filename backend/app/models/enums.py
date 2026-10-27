@@ -38,3 +38,35 @@ class ComplianceStatus(str, Enum):
     VERIFIED = "VERIFIED"
     REJECTED = "REJECTED"
     OVERDUE = "OVERDUE"
+
+
+class NotificationType(str, Enum):
+    """Categorized notification trigger events."""
+    APPLICATION_SUBMITTED = "APPLICATION_SUBMITTED"
+    APPLICATION_RETURNED = "APPLICATION_RETURNED"
+    APPLICATION_STAGE_UPDATED = "APPLICATION_STAGE_UPDATED"
+    EVC_SCHEDULED = "EVC_SCHEDULED"
+    COMPLIANCE_DUE_SOON = "COMPLIANCE_DUE_SOON"
+    COMPLIANCE_OVERDUE = "COMPLIANCE_OVERDUE"
+    COMPLIANCE_SUBMITTED = "COMPLIANCE_SUBMITTED"
+    COMPLIANCE_VERIFIED = "COMPLIANCE_VERIFIED"
+    COMPLIANCE_REJECTED = "COMPLIANCE_REJECTED"
+    DOCUMENT_EXPIRING = "DOCUMENT_EXPIRING"
+    DOCUMENT_EXPIRED = "DOCUMENT_EXPIRED"
+    ESCALATION = "ESCALATION"
+
+
+class NotificationPriority(str, Enum):
+    """Notification urgency levels."""
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class NotificationStatus(str, Enum):
+    """Read/archive status of user notifications."""
+    UNREAD = "UNREAD"
+    READ = "READ"
+    ARCHIVED = "ARCHIVED"
+

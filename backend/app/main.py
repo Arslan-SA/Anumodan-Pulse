@@ -15,6 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.api.v1.router import router as api_v1_router
 
+from app.services.scheduler import start_scheduler, stop_scheduler
+
 settings = get_settings()
 
 
@@ -23,9 +25,12 @@ async def lifespan(app: FastAPI):
     """Application lifespan — startup / shutdown hooks."""
     # Startup
     print(f"🚀 AICTE FlowOps API starting in {settings.app_env} mode")
+    start_scheduler()
     yield
     # Shutdown
+    stop_scheduler()
     print("👋 AICTE FlowOps API shutting down")
+
 
 
 def create_app() -> FastAPI:

@@ -269,7 +269,13 @@ class ApplicationService:
 
         db.commit()
         db.refresh(app)
+
+        # Trigger notification event
+        from app.services.notification_service import NotificationService
+        NotificationService.notify_application_submitted(db, app, user)
+
         return app
+
 
     @staticmethod
     def delete_draft_application(

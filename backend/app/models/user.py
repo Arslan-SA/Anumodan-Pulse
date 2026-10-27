@@ -20,6 +20,8 @@ if TYPE_CHECKING:
     from app.models.compliance import ComplianceRecord
     from app.models.document import Document
     from app.models.compliance_history import ComplianceHistory
+    from app.models.notification import Notification
+
 
 
 class User(Base):
@@ -86,6 +88,13 @@ class User(Base):
         "ComplianceHistory",
         back_populates="acted_by_user",
     )
+    notifications: Mapped[List["Notification"]] = relationship(
+        "Notification",
+        back_populates="recipient_user",
+        cascade="all, delete-orphan",
+        order_by="Notification.created_at.desc()",
+    )
 
     def __repr__(self) -> str:
+
         return f"<User(email='{self.email}', role='{self.role}')>"

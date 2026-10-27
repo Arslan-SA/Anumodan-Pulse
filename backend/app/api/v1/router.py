@@ -14,6 +14,8 @@ from app.api.v1.endpoints import (
     documents,
     health,
     institutions,
+    notifications,
+    reminder_rules,
     users,
     workflows,
 )
@@ -42,5 +44,14 @@ router.include_router(
     tags=["Compliance Requirements"],
 )
 router.include_router(documents.router, prefix="/documents", tags=["Documents"])
+
+# ── Phase 7: Notifications, Alerts, & Escalations ───────────────────────
+router.include_router(notifications.router, prefix="/notifications", tags=["Notifications"])
+router.include_router(
+    reminder_rules.router,
+    prefix="/reminder-rules",
+    tags=["Reminder Rules & Escalations"],
+)
+
 
 

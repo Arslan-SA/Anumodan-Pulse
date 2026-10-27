@@ -467,6 +467,11 @@ class ComplianceService:
         db.add(history)
         db.commit()
         db.refresh(record)
+
+        # Trigger notification event
+        from app.services.notification_service import NotificationService
+        NotificationService.notify_compliance_submitted(db, record)
+
         return record
 
     @staticmethod
@@ -521,6 +526,11 @@ class ComplianceService:
         db.add(history)
         db.commit()
         db.refresh(record)
+
+        # Trigger notification event
+        from app.services.notification_service import NotificationService
+        NotificationService.notify_compliance_verified(db, record, user, remarks)
+
         return record
 
     @staticmethod
@@ -568,4 +578,10 @@ class ComplianceService:
         db.add(history)
         db.commit()
         db.refresh(record)
+
+        # Trigger notification event
+        from app.services.notification_service import NotificationService
+        NotificationService.notify_compliance_rejected(db, record, user, reason)
+
         return record
+

@@ -47,6 +47,13 @@ class Settings(BaseSettings):
     s3_secret_access_key: str | None = None
     s3_region: str | None = None
 
+    # ── Notifications & Scheduler (Phase 7) ─────────────────────────────
+    enable_scheduler: bool = True
+    scheduler_interval_minutes: int = 15
+    default_reminder_windows_days: str = "7,3,1"
+    default_escalation_overdue_days: int = 5
+
+
     def validate_production_security(self) -> None:
         """Fail fast if secrets are insecure in production."""
         if self.app_env.lower() == "production":
@@ -64,6 +71,15 @@ class Settings(BaseSettings):
     def cors_origin_list(self) -> list[str]:
         """Return CORS origins as a list."""
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]
+
+    @property
+    def reminder_windows_list(self) -> list[int]:
+        """Return parsed reminder window day intervals."""
+        try:
+            return [int(x.strip()) for x in self.default_reminder_windows_days.split(",") if x.strip()]
+        except Exception:
+            return [7, 3, 1]
+
 
 
 @lru_cache

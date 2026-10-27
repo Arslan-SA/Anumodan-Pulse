@@ -752,4 +752,14 @@ class WorkflowService:
         db.commit()
         db.refresh(app)
 
+        # Trigger notification events
+        from app.services.notification_service import NotificationService
+        if clean_action == "RETURN_FOR_CLARIFICATION" or new_status == ApplicationStatus.RETURNED_FOR_CLARIFICATION:
+            NotificationService.notify_application_returned(db, app, remarks_text or "Clarification required", user)
+        else:
+            NotificationService.notify_application_stage_updated(
+                db, app, open_history.workflow_stage.stage_name if open_history and open_history.workflow_stage else None, target_stage.stage_name, user
+            )
+
         return WorkflowService.get_application_workflow_state(db, app.id, user)
+

@@ -5,7 +5,14 @@ Exports all domain models for application use and Alembic migration metadata col
 """
 
 from app.database import Base
-from app.models.enums import ApplicationStatus, ComplianceStatus, UserRole
+from app.models.enums import (
+    ApplicationStatus,
+    ComplianceStatus,
+    NotificationPriority,
+    NotificationStatus,
+    NotificationType,
+    UserRole,
+)
 from app.models.institution import Institution
 from app.models.user import User
 from app.models.application import Application
@@ -17,12 +24,18 @@ from app.models.workflow_definition import WorkflowDefinition
 from app.models.workflow_transition import WorkflowTransition
 from app.models.compliance_requirement import ComplianceRequirement
 from app.models.compliance_history import ComplianceHistory
+from app.models.notification import Notification
+from app.models.reminder_rule import ReminderRule
+from app.models.escalation_history import EscalationHistory
 
 __all__ = [
     "Base",
     "UserRole",
     "ApplicationStatus",
     "ComplianceStatus",
+    "NotificationType",
+    "NotificationPriority",
+    "NotificationStatus",
     "Institution",
     "User",
     "Application",
@@ -34,5 +47,9 @@ __all__ = [
     "WorkflowTransition",
     "ComplianceRequirement",
     "ComplianceHistory",
+    "Notification",
+    "ReminderRule",
+    "EscalationHistory",
 ]
+
 
