@@ -15,6 +15,8 @@ from app.models.compliance import ComplianceRecord
 from app.models.document import Document
 from app.models.workflow_definition import WorkflowDefinition
 from app.models.workflow_transition import WorkflowTransition
+from app.models.compliance_requirement import ComplianceRequirement
+from app.models.compliance_history import ComplianceHistory
 
 __all__ = [
     "Base",
@@ -30,5 +32,7 @@ __all__ = [
     "Document",
     "WorkflowDefinition",
     "WorkflowTransition",
+    "ComplianceRequirement",
+    "ComplianceHistory",
 ]
 

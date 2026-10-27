@@ -21,3 +21,8 @@ backend/**/.pytest_cache
 .eggs
 backend/venv
 backend/.venv
+/backend/storage/
+/storage/
+!backend/app/services/storage/
+
+

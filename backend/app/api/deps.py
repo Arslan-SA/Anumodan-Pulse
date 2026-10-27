@@ -106,3 +106,5 @@ require_admin = require_roles(UserRole.ADMIN)
 require_aicte_official = require_roles(UserRole.AICTE_OFFICIAL)
 require_institution_user = require_roles(UserRole.INSTITUTION_USER)
 require_reviewer = require_roles(UserRole.REVIEWER)
+require_official_or_admin = require_roles(UserRole.ADMIN, UserRole.AICTE_OFFICIAL)
+

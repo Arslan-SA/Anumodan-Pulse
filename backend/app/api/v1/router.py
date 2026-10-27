@@ -6,7 +6,17 @@ Aggregates all v1 endpoint routers under a single ``/api/v1`` prefix.
 
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import applications, auth, health, institutions, users, workflows
+from app.api.v1.endpoints import (
+    applications,
+    auth,
+    compliance,
+    compliance_requirements,
+    documents,
+    health,
+    institutions,
+    users,
+    workflows,
+)
 
 router = APIRouter(prefix="/api/v1")
 
@@ -23,4 +33,14 @@ router.include_router(applications.router, prefix="/applications", tags=["Applic
 
 # ── Phase 5: Approval Workflow Engine ───────────────────────────────────
 router.include_router(workflows.router, prefix="/workflows", tags=["Workflows"])
+
+# ── Phase 6: Compliance, Undertakings, & Document Management ────────────
+router.include_router(compliance.router, prefix="/compliance", tags=["Compliance"])
+router.include_router(
+    compliance_requirements.router,
+    prefix="/compliance-requirements",
+    tags=["Compliance Requirements"],
+)
+router.include_router(documents.router, prefix="/documents", tags=["Documents"])
+
 

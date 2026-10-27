@@ -27,6 +27,26 @@ from app.schemas.workflow import (
     WorkflowTransitionResponse,
     WorkflowTransitionUpdate,
 )
+from app.schemas.compliance_requirement import (
+    ComplianceRequirementCreate,
+    ComplianceRequirementResponse,
+    ComplianceRequirementStatusUpdate,
+    ComplianceRequirementUpdate,
+)
+from app.schemas.document import (
+    DocumentDetailResponse,
+    DocumentExpiringResponse,
+    DocumentResponse,
+)
+from app.schemas.compliance import (
+    ComplianceHistoryResponse,
+    ComplianceRecordCreate,
+    ComplianceRecordDetailResponse,
+    ComplianceRecordResponse,
+    ComplianceRecordUpdate,
+    ComplianceRejectRequest,
+    ComplianceVerifyRequest,
+)
 
 __all__ = [
     "PaginatedResponse",
@@ -56,5 +76,19 @@ __all__ = [
     "StageHistoryItemResponse",
     "ApplicationWorkflowStateResponse",
     "WorkflowActionRequest",
+    "ComplianceRequirementCreate",
+    "ComplianceRequirementUpdate",
+    "ComplianceRequirementStatusUpdate",
+    "ComplianceRequirementResponse",
+    "DocumentResponse",
+    "DocumentDetailResponse",
+    "DocumentExpiringResponse",
+    "ComplianceRecordCreate",
+    "ComplianceRecordUpdate",
+    "ComplianceVerifyRequest",
+    "ComplianceRejectRequest",
+    "ComplianceHistoryResponse",
+    "ComplianceRecordResponse",
+    "ComplianceRecordDetailResponse",
 ]
 

@@ -19,6 +19,7 @@ if TYPE_CHECKING:
     from app.models.stage_history import ApplicationStageHistory
     from app.models.compliance import ComplianceRecord
     from app.models.document import Document
+    from app.models.compliance_history import ComplianceHistory
 
 
 class User(Base):
@@ -80,6 +81,10 @@ class User(Base):
     uploaded_documents: Mapped[List["Document"]] = relationship(
         "Document",
         back_populates="uploaded_by_user",
+    )
+    compliance_actions: Mapped[List["ComplianceHistory"]] = relationship(
+        "ComplianceHistory",
+        back_populates="acted_by_user",
     )
 
     def __repr__(self) -> str:

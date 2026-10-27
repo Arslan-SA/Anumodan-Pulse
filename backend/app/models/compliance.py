@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from app.models.application import Application
     from app.models.user import User
     from app.models.document import Document
+    from app.models.compliance_history import ComplianceHistory
 
 
 class ComplianceRecord(Base):
@@ -51,6 +52,7 @@ class ComplianceRecord(Base):
         default=ComplianceStatus.PENDING,
         nullable=False,
     )
+    rejection_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     submitted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
         nullable=True,
@@ -94,6 +96,12 @@ class ComplianceRecord(Base):
     documents: Mapped[List["Document"]] = relationship(
         "Document",
         back_populates="compliance_record",
+    )
+    histories: Mapped[List["ComplianceHistory"]] = relationship(
+        "ComplianceHistory",
+        back_populates="compliance_record",
+        cascade="all, delete-orphan",
+        order_by="ComplianceHistory.created_at.desc()",
     )
 
     def __repr__(self) -> str:

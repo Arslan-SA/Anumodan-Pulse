@@ -37,6 +37,16 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_access_token_expire_minutes: int = 60
 
+    # ── Storage Configuration ───────────────────────────────────────────
+    storage_backend: str = "local"  # "local" or "s3"
+    storage_local_path: str = "./storage/uploads"
+    storage_max_file_size_mb: int = 15
+    s3_bucket_name: str | None = None
+    s3_endpoint_url: str | None = None
+    s3_access_key_id: str | None = None
+    s3_secret_access_key: str | None = None
+    s3_region: str | None = None
+
     def validate_production_security(self) -> None:
         """Fail fast if secrets are insecure in production."""
         if self.app_env.lower() == "production":
@@ -60,3 +70,7 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Cached singleton so env is read once."""
     return Settings()
+
+
+settings: Settings = get_settings()
+
