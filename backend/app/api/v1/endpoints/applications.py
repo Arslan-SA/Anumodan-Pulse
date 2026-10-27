@@ -28,7 +28,9 @@ from app.schemas.application import (
 )
 from app.schemas.common import PaginatedResponse
 from app.schemas.institution import InstitutionResponse
+from app.schemas.workflow import ApplicationWorkflowStateResponse, WorkflowActionRequest
 from app.services.application_service import ApplicationService
+from app.services.workflow_service import WorkflowService
 
 router = APIRouter()
 
@@ -179,3 +181,39 @@ def delete_application(
 ):
     ApplicationService.delete_draft_application(db, application_id, current_user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# ── Workflow State & Action Execution ───────────────────────────────
+@router.get(
+    "/{application_id}/workflow",
+    response_model=ApplicationWorkflowStateResponse,
+    summary="Get Application Workflow State",
+    description="Return the workflow state, stage history, and available actions for an application.",
+)
+def get_application_workflow_state(
+    application_id: uuid.UUID,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    return WorkflowService.get_application_workflow_state(db, application_id, current_user)
+
+
+@router.post(
+    "/{application_id}/workflow-actions",
+    response_model=ApplicationWorkflowStateResponse,
+    summary="Execute Workflow Action",
+    description="Perform an authorized workflow action against an application.",
+)
+def execute_workflow_action(
+    application_id: uuid.UUID,
+    payload: WorkflowActionRequest,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    return WorkflowService.execute_workflow_action(
+        db=db,
+        application_id=application_id,
+        user=current_user,
+        payload=payload,
+    )
+

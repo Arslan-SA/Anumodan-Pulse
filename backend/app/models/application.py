@@ -15,10 +15,12 @@ from app.database import Base
 from app.models.enums import ApplicationStatus
 
 if TYPE_CHECKING:
-    from app.models.institution import Institution
-    from app.models.stage_history import ApplicationStageHistory
     from app.models.compliance import ComplianceRecord
     from app.models.document import Document
+    from app.models.institution import Institution
+    from app.models.stage_history import ApplicationStageHistory
+    from app.models.workflow_definition import WorkflowDefinition
+    from app.models.workflow_stage import WorkflowStage
 
 
 class Application(Base):
@@ -48,6 +50,18 @@ class Application(Base):
         default=ApplicationStatus.DRAFT,
         nullable=False,
     )
+    workflow_definition_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("workflow_definitions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    current_stage_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        Uuid(as_uuid=True),
+        ForeignKey("workflow_stages.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
     current_stage: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     submitted_at: Mapped[Optional[datetime]] = mapped_column(
         DateTime(timezone=True),
@@ -70,6 +84,15 @@ class Application(Base):
     institution: Mapped["Institution"] = relationship(
         "Institution",
         back_populates="applications",
+    )
+    workflow_definition: Mapped[Optional["WorkflowDefinition"]] = relationship(
+        "WorkflowDefinition",
+        back_populates="applications",
+    )
+    current_stage_rel: Mapped[Optional["WorkflowStage"]] = relationship(
+        "WorkflowStage",
+        foreign_keys=[current_stage_id],
+        back_populates="current_applications",
     )
     stage_histories: Mapped[List["ApplicationStageHistory"]] = relationship(
         "ApplicationStageHistory",

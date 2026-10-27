@@ -12,6 +12,21 @@ from app.schemas.application import (
     ApplicationResponse,
     ApplicationUpdate,
 )
+from app.schemas.workflow import (
+    ApplicationWorkflowStateResponse,
+    AvailableActionResponse,
+    StageHistoryItemResponse,
+    WorkflowActionRequest,
+    WorkflowDefinitionCreate,
+    WorkflowDefinitionDetailResponse,
+    WorkflowDefinitionResponse,
+    WorkflowDefinitionUpdate,
+    WorkflowStageCreate,
+    WorkflowStageResponse,
+    WorkflowTransitionCreate,
+    WorkflowTransitionResponse,
+    WorkflowTransitionUpdate,
+)
 
 __all__ = [
     "PaginatedResponse",
@@ -28,4 +43,18 @@ __all__ = [
     "ApplicationUpdate",
     "ApplicationResponse",
     "ApplicationDetailResponse",
+    "WorkflowDefinitionCreate",
+    "WorkflowDefinitionUpdate",
+    "WorkflowDefinitionResponse",
+    "WorkflowDefinitionDetailResponse",
+    "WorkflowStageCreate",
+    "WorkflowStageResponse",
+    "WorkflowTransitionCreate",
+    "WorkflowTransitionUpdate",
+    "WorkflowTransitionResponse",
+    "AvailableActionResponse",
+    "StageHistoryItemResponse",
+    "ApplicationWorkflowStateResponse",
+    "WorkflowActionRequest",
 ]
+

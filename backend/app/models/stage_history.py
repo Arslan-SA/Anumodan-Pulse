@@ -40,6 +40,7 @@ class ApplicationStageHistory(Base):
         index=True,
     )
     status: Mapped[str] = mapped_column(String(50), nullable=False)
+    action_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     remarks: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     acted_by_user_id: Mapped[Optional[uuid.UUID]] = mapped_column(
         Uuid(as_uuid=True),

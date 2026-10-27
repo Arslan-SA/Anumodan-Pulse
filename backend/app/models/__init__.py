@@ -13,6 +13,8 @@ from app.models.workflow_stage import WorkflowStage
 from app.models.stage_history import ApplicationStageHistory
 from app.models.compliance import ComplianceRecord
 from app.models.document import Document
+from app.models.workflow_definition import WorkflowDefinition
+from app.models.workflow_transition import WorkflowTransition
 
 __all__ = [
     "Base",
@@ -26,4 +28,7 @@ __all__ = [
     "ApplicationStageHistory",
     "ComplianceRecord",
     "Document",
+    "WorkflowDefinition",
+    "WorkflowTransition",
 ]
+

@@ -263,9 +263,9 @@ class ApplicationService:
                 detail=f"Cannot submit application in '{app_status_val}' status. Only DRAFT applications can be submitted.",
             )
 
-        app.status = ApplicationStatus.SUBMITTED
-        app.submitted_at = datetime.now(timezone.utc)
-        app.current_stage = "Scrutiny"
+        # Initialize workflow progression and initial stage history atomically
+        from app.services.workflow_service import WorkflowService
+        WorkflowService.initialize_application_workflow(db, app, user)
 
         db.commit()
         db.refresh(app)
