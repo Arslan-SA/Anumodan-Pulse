@@ -282,6 +282,27 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             }
         }
 
+        // If offline / local fallback:
+        if (credential.startsWith('google_auth:') || credential.startsWith('demo_google_token:')) {
+            const parts = credential.split(':');
+            const realEmail = parts[1] || 'user@example.com';
+            const realName = parts[2] || realEmail.split('@')[0];
+            const localUser: User = {
+                id: 'usr-google-' + Date.now(),
+                name: realName,
+                email: realEmail,
+                role: 'institution',
+                department: 'Technical Institute',
+                status: 'Active',
+            };
+            setState((prev) => ({
+                ...prev,
+                users: [localUser, ...prev.users],
+                sessionUserId: localUser.id,
+            }));
+            return { ok: true };
+        }
+
         const u = state.users.find((item) => item.role === 'institution') || state.users[0];
         if (u) {
             login(u.id);

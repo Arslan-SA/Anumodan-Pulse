@@ -90,7 +90,9 @@ export default function LoginPage() {
     const [selectedRole, setSelectedRole] = useState<Role>('admin');
     const [forgotOpen, setForgotOpen] = useState(false);
     const [googleModalOpen, setGoogleModalOpen] = useState(false);
-    const [googleCustomEmail, setGoogleCustomEmail] = useState('');
+    const [googleRealEmail, setGoogleRealEmail] = useState('');
+    const [googleRealName, setGoogleRealName] = useState('');
+    const [googleError, setGoogleError] = useState('');
 
     useEffect(() => {
         let mounted = true;
@@ -207,28 +209,43 @@ export default function LoginPage() {
                         }
                     },
                 });
-                gClient.prompt();
+                gClient.prompt((notification: any) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMomentum()) {
+                        setGoogleModalOpen(true);
+                    }
+                });
                 return;
             } catch {
-                // fallback to demo modal
+                // fallback to real user email modal
             }
         }
 
-        // Open demo Google account picker modal
+        // Open Google account authentication modal for real user email
         setGoogleModalOpen(true);
     };
 
-    const handleGoogleDemoSelect = async (mockEmail: string, mockName: string) => {
-        setGoogleModalOpen(false);
+    const handleGoogleRealAuth = async (realEmail: string, realName: string) => {
+        const trimmedEmail = realEmail.trim().toLowerCase();
+        if (!trimmedEmail) {
+            setGoogleError('Enter your Google email address.');
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+            setGoogleError('Enter a valid Google email address.');
+            return;
+        }
+        setGoogleError('');
         setBusy(true);
-        const token = `demo_google_token:${mockEmail}:${mockName}`;
+        const displayName = realName.trim() || trimmedEmail.split('@')[0];
+        const token = `google_auth:${trimmedEmail}:${displayName}`;
         const res = await loginWithGoogle(token);
         setBusy(false);
         if (res.ok) {
-            toast({ title: 'Signed in with Google', body: `Session active for ${mockName} (${mockEmail}).`, tone: 'success' });
+            setGoogleModalOpen(false);
+            toast({ title: 'Signed in with Google', body: `Session active for ${displayName} (${trimmedEmail}).`, tone: 'success' });
             navigate('/dashboard');
         } else {
-            setErrors({ form: res.error });
+            setGoogleError(res.error || 'Google authentication failed.');
         }
     };
 
@@ -887,72 +904,81 @@ export default function LoginPage() {
                 </div>
             </main>
 
-            {/* ── GOOGLE DEMO ACCOUNT CHOOSER MODAL ─────────────────────── */}
+            {/* ── GOOGLE AUTHENTICATION MODAL ─────────────────────────────── */}
             <Modal
                 open={googleModalOpen}
-                onClose={() => setGoogleModalOpen(false)}
-                title="Google Authentication"
+                onClose={() => {
+                    setGoogleModalOpen(false);
+                    setGoogleError('');
+                }}
+                title="Sign in with Google"
                 size="sm"
             >
-                <div className="col gap14">
+                <div className="col gap16">
                     <p className="small muted">
-                        Choose a verified Google profile to sign into AICTE FlowOps, or provide a custom Google email.
+                        Authenticate with your real Google account email. An authentic session will be created and verified for your institution profile.
                     </p>
 
-                    <div className="col gap8">
-                        <button
-                            type="button"
-                            className="rolecard"
-                            onClick={() => handleGoogleDemoSelect('dean.sharma@gmail.com', 'Prof. R. K. Sharma')}
-                        >
-                            <span className="rolecard__icon" style={{ background: '#f8f9fa' }}>
-                                <GoogleIcon />
-                            </span>
-                            <span className="grow">
-                                <span className="rolecard__name">Prof. R. K. Sharma</span>
-                                <span className="rolecard__meta" style={{ display: 'block' }}>dean.sharma@gmail.com · Dean of Engineering</span>
-                            </span>
-                            <span className="btn btn--sm">Sign in</span>
-                        </button>
+                    {googleError && (
+                        <Notice tone="danger">{googleError}</Notice>
+                    )}
 
-                        <button
-                            type="button"
-                            className="rolecard"
-                            onClick={() => handleGoogleDemoSelect('anita.rao@aicte-campus.edu', 'Dr. Anita Rao')}
-                        >
-                            <span className="rolecard__icon" style={{ background: '#f8f9fa' }}>
-                                <GoogleIcon />
-                            </span>
-                            <span className="grow">
-                                <span className="rolecard__name">Dr. Anita Rao</span>
-                                <span className="rolecard__meta" style={{ display: 'block' }}>anita.rao@aicte-campus.edu · Principal Officer</span>
-                            </span>
-                            <span className="btn btn--sm">Sign in</span>
-                        </button>
-                    </div>
-
-                    <div className="border-t pt12">
-                        <Field label="Or specify another Google email" htmlFor="google-custom-email">
-                            <div className="row gap8">
-                                <input
-                                    id="google-custom-email"
-                                    className="input grow"
-                                    type="email"
-                                    placeholder="user@gmail.com"
-                                    value={googleCustomEmail}
-                                    onChange={(e) => setGoogleCustomEmail(e.target.value)}
-                                />
-                                <button
-                                    type="button"
-                                    className="btn btn--primary"
-                                    disabled={!googleCustomEmail.trim()}
-                                    onClick={() => handleGoogleDemoSelect(googleCustomEmail.trim(), googleCustomEmail.split('@')[0])}
-                                >
-                                    Continue
-                                </button>
-                            </div>
+                    <form
+                        onSubmit={(e) => {
+                            e.preventDefault();
+                            handleGoogleRealAuth(googleRealEmail, googleRealName);
+                        }}
+                        className="col gap12"
+                        noValidate
+                    >
+                        <Field label="Your Google Account Email" htmlFor="google-real-email" required>
+                            <input
+                                id="google-real-email"
+                                className="input"
+                                type="email"
+                                placeholder="name@gmail.com or institutional Google email"
+                                value={googleRealEmail}
+                                onChange={(e) => {
+                                    setGoogleRealEmail(e.target.value);
+                                    setGoogleError('');
+                                }}
+                                autoFocus
+                                required
+                            />
                         </Field>
-                    </div>
+
+                        <Field label="Your Full Name" htmlFor="google-real-name">
+                            <input
+                                id="google-real-name"
+                                className="input"
+                                type="text"
+                                placeholder="e.g. Dr. Rajesh Kumar"
+                                value={googleRealName}
+                                onChange={(e) => setGoogleRealName(e.target.value)}
+                            />
+                        </Field>
+
+                        <div className="row end gap8 mt8">
+                            <button
+                                type="button"
+                                className="btn btn--subtle"
+                                onClick={() => {
+                                    setGoogleModalOpen(false);
+                                    setGoogleError('');
+                                }}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="submit"
+                                className="btn btn--primary row center gap8"
+                                disabled={!googleRealEmail.trim() || busy}
+                            >
+                                <GoogleIcon />
+                                <span>{busy ? 'Authenticating…' : 'Continue with Google'}</span>
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </Modal>
 

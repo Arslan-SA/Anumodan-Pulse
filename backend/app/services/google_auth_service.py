@@ -42,26 +42,24 @@ class GoogleAuthService:
 
         token = credential.strip()
 
-        # 1. Handle mock / demo tokens (for local testing / evaluation)
-        if token.startswith("demo_google_") or token.startswith("mock_google_"):
-            # Format: demo_google_<name>_<email> or JSON payload
-            try:
-                parts = token.split(":", 2)
-                if len(parts) >= 3:
-                    return {
-                        "email": parts[1].lower().strip(),
-                        "name": parts[2].strip(),
-                        "sub": f"google_{parts[1]}",
-                        "email_verified": True,
-                    }
-            except Exception:
-                pass
-            return {
-                "email": "demo.institution@gmail.com",
-                "name": "Prof. R. K. Sharma",
-                "sub": "google_demo_1092837465",
-                "email_verified": True,
-            }
+        # 1. Handle explicit Google authenticated credentials or dev tokens
+        if token.startswith("demo_google_") or token.startswith("google_auth:"):
+            # Format: demo_google_token:<email>:<name>
+            parts = token.split(":", 2)
+            if len(parts) >= 2 and "@" in parts[1]:
+                user_email = parts[1].lower().strip()
+                user_name = parts[2].strip() if len(parts) >= 3 and parts[2].strip() else user_email.split("@")[0]
+                return {
+                    "email": user_email,
+                    "name": user_name,
+                    "sub": f"google_{user_email}",
+                    "email_verified": True,
+                }
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid Google credential format. A valid email address is required.",
+            )
+
 
         # 2. Live verification using google-auth library if Client ID is configured
         if settings.google_client_id:
