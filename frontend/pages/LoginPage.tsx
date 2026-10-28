@@ -121,6 +121,49 @@ export default function LoginPage() {
         };
     }, [state.institutions]);
 
+    const hasGoogleClientId = Boolean((import.meta as any).env?.VITE_GOOGLE_CLIENT_ID);
+
+    useEffect(() => {
+        if (!googleModalOpen) return;
+        const clientId = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID;
+        const gClient = (window as any).google?.accounts?.id;
+        if (gClient && clientId) {
+            try {
+                gClient.initialize({
+                    client_id: clientId,
+                    callback: async (response: any) => {
+                        if (response.credential) {
+                            setBusy(true);
+                            const res = await loginWithGoogle(response.credential);
+                            setBusy(false);
+                            if (res.ok) {
+                                setGoogleModalOpen(false);
+                                toast({ title: 'Google Sign-In Successful', body: 'Authenticated with Google account.', tone: 'success' });
+                                navigate('/dashboard');
+                            } else {
+                                setGoogleError(res.error || 'Google authentication failed.');
+                            }
+                        }
+                    },
+                });
+                const container = document.getElementById('google-official-btn');
+                if (container) {
+                    container.innerHTML = '';
+                    gClient.renderButton(container, {
+                        type: 'standard',
+                        theme: 'outline',
+                        size: 'large',
+                        width: 360,
+                        text: 'continue_with',
+                        shape: 'rectangular',
+                    });
+                }
+            } catch (err) {
+                console.warn('Google GSI render error:', err);
+            }
+        }
+    }, [googleModalOpen, loginWithGoogle, navigate, toast]);
+
     if (user) return <Navigate to="/dashboard" replace />;
 
     // ── 1. Password Sign-In Handler ─────────────────────────────────────────
@@ -921,6 +964,17 @@ export default function LoginPage() {
 
                     {googleError && (
                         <Notice tone="danger">{googleError}</Notice>
+                    )}
+
+                    {hasGoogleClientId && (
+                        <div className="col gap10 center" style={{ alignItems: 'center' }}>
+                            <div id="google-official-btn" style={{ minHeight: 44, width: '100%', display: 'flex', justifyContent: 'center' }} />
+                            <div className="row gap8" style={{ alignItems: 'center', width: '100%' }}>
+                                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                                <span className="tiny muted-2" style={{ textTransform: 'uppercase', letterSpacing: '0.08em' }}>or enter email manually</span>
+                                <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
+                            </div>
+                        </div>
                     )}
 
                     <form
