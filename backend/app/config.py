@@ -62,6 +62,17 @@ class Settings(BaseSettings):
     ai_timeout_seconds: int = 15
     ai_max_tokens: int = 1500
 
+    # ── Google Authentication & OTP Verification ───────────────────────
+    google_client_id: str | None = None
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_from_email: str = "noreply@aicte-flowops.gov.in"
+    smtp_use_tls: bool = True
+    otp_expiry_minutes: int = 10
+    otp_max_attempts: int = 5
+
 
     def validate_production_security(self) -> None:
         """Fail fast if secrets, database, or cloud storage configuration are insecure in production."""

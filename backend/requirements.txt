@@ -21,6 +21,7 @@ email-validator>=2.2.0
 # Security & Authentication
 pwdlib[argon2]==0.2.1
 pyjwt>=2.10.1
+google-auth>=2.0.0
 
 # Environment
 python-dotenv==1.0.1

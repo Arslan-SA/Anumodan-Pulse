@@ -27,6 +27,7 @@ from app.models.compliance_history import ComplianceHistory
 from app.models.notification import Notification
 from app.models.reminder_rule import ReminderRule
 from app.models.escalation_history import EscalationHistory
+from app.models.email_otp import EmailOTP
 
 __all__ = [
     "Base",
@@ -50,6 +51,7 @@ __all__ = [
     "Notification",
     "ReminderRule",
     "EscalationHistory",
+    "EmailOTP",
 ]
 
 

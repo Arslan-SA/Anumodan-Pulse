@@ -93,6 +93,35 @@ export interface LoginResponse {
     };
 }
 
+export interface SendOtpResponse {
+    message: string;
+    expires_in_minutes: number;
+    dev_otp?: string;
+}
+
+export interface VerifyOtpResponse {
+    verified: boolean;
+    message: string;
+}
+
+export interface InstitutionLookupItem {
+    id: string;
+    institution_name: string;
+    institution_code: string;
+    state?: string | null;
+    district?: string | null;
+}
+
+export interface RegisterPayload {
+    full_name: string;
+    email: string;
+    password: string;
+    institution_id?: string;
+    institution_name?: string;
+    institution_code?: string;
+    otp_code?: string;
+}
+
 export const authApi = {
     async login(email: string, password: string): Promise<LoginResponse> {
         const data = await request<LoginResponse>('/api/v1/auth/login', {
@@ -102,6 +131,59 @@ export const authApi = {
         });
         setStoredToken(data.access_token);
         return data;
+    },
+
+    async sendOtp(email: string, purpose: 'register' | 'login' = 'register'): Promise<SendOtpResponse> {
+        return request<SendOtpResponse>('/api/v1/auth/otp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, purpose }),
+        });
+    },
+
+    async verifyOtp(email: string, otp_code: string, purpose: 'register' | 'login' = 'register'): Promise<VerifyOtpResponse> {
+        return request<VerifyOtpResponse>('/api/v1/auth/otp/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, otp_code, purpose }),
+        });
+    },
+
+    async loginWithOtp(email: string, otp_code: string): Promise<LoginResponse> {
+        const data = await request<LoginResponse>('/api/v1/auth/otp/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, otp_code }),
+        });
+        setStoredToken(data.access_token);
+        return data;
+    },
+
+    async loginWithGoogle(credential: string, institution_id?: string): Promise<LoginResponse> {
+        const data = await request<LoginResponse>('/api/v1/auth/google', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ credential, institution_id }),
+        });
+        setStoredToken(data.access_token);
+        return data;
+    },
+
+    async register(payload: RegisterPayload): Promise<any> {
+        const data = await request<any>('/api/v1/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        if (data && data.access_token) {
+            setStoredToken(data.access_token);
+        }
+        return data;
+    },
+
+    async lookupInstitutions(q?: string): Promise<InstitutionLookupItem[]> {
+        const qs = q ? `?q=${encodeURIComponent(q)}` : '';
+        return request<InstitutionLookupItem[]>(`/api/v1/auth/institutions/lookup${qs}`);
     },
 
     async getProfile(): Promise<any> {

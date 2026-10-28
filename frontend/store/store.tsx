@@ -33,6 +33,9 @@ export interface StoreContextType {
     dismissToast: (id: string) => void;
     login: (userId: string) => void;
     loginWithEmail: (email: string, password: string) => Promise<{ ok: boolean; error?: string }> | { ok: boolean; error?: string };
+    loginWithOtp: (email: string, otpCode: string) => Promise<{ ok: boolean; error?: string }>;
+    loginWithGoogle: (credential: string, institutionId?: string) => Promise<{ ok: boolean; error?: string }>;
+    registerUser: (payload: any) => Promise<{ ok: boolean; error?: string }>;
     logout: () => void;
     switchUser: (userId: string) => void;
     advanceClock: (days: number) => void;
@@ -206,6 +209,134 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
             return { ok: false, error: 'Incorrect credentials. Try demo password: ' + DEMO_PASSWORD };
         }
         login(u.id);
+        return { ok: true };
+    };
+
+    const loginWithOtp = async (email: string, otpCode: string): Promise<{ ok: boolean; error?: string }> => {
+        try {
+            const res = await authApi.loginWithOtp(email, otpCode);
+            if (res && res.user) {
+                let u = state.users.find((item) => item.email.toLowerCase() === res.user.email.toLowerCase());
+                if (!u) {
+                    const newUser: User = {
+                        id: res.user.id,
+                        name: res.user.full_name,
+                        email: res.user.email,
+                        role: 'institution',
+                        department: 'Technical Institute',
+                        institutionId: res.user.institution_id || undefined,
+                        status: 'Active',
+                    };
+                    setState((prev) => ({
+                        ...prev,
+                        users: [newUser, ...prev.users],
+                        sessionUserId: newUser.id,
+                    }));
+                } else {
+                    login(u.id);
+                }
+                return { ok: true };
+            }
+        } catch (apiErr: any) {
+            if (apiErr?.status === 401 || apiErr?.status === 404 || apiErr?.status === 403) {
+                return { ok: false, error: apiErr.message || 'Invalid or expired OTP verification code.' };
+            }
+        }
+
+        const u = state.users.find((item) => item.email.toLowerCase() === email.trim().toLowerCase());
+        if (!u) {
+            return { ok: false, error: 'No user registered with this email address.' };
+        }
+        login(u.id);
+        return { ok: true };
+    };
+
+    const loginWithGoogle = async (credential: string, institutionId?: string): Promise<{ ok: boolean; error?: string }> => {
+        try {
+            const res = await authApi.loginWithGoogle(credential, institutionId);
+            if (res && res.user) {
+                let u = state.users.find((item) => item.email.toLowerCase() === res.user.email.toLowerCase());
+                if (!u) {
+                    const newUser: User = {
+                        id: res.user.id,
+                        name: res.user.full_name,
+                        email: res.user.email,
+                        role: 'institution',
+                        department: 'Technical Institute',
+                        institutionId: res.user.institution_id || undefined,
+                        status: 'Active',
+                    };
+                    setState((prev) => ({
+                        ...prev,
+                        users: [newUser, ...prev.users],
+                        sessionUserId: newUser.id,
+                    }));
+                } else {
+                    login(u.id);
+                }
+                return { ok: true };
+            }
+        } catch (apiErr: any) {
+            if (apiErr?.status === 401 || apiErr?.status === 403) {
+                return { ok: false, error: apiErr.message || 'Google authentication failed.' };
+            }
+        }
+
+        const u = state.users.find((item) => item.role === 'institution') || state.users[0];
+        if (u) {
+            login(u.id);
+            return { ok: true };
+        }
+        return { ok: false, error: 'Could not complete Google authentication.' };
+    };
+
+    const registerUser = async (payload: any): Promise<{ ok: boolean; error?: string }> => {
+        try {
+            const res = await authApi.register(payload);
+            if (res) {
+                const userObj = res.user || res;
+                let u = state.users.find((item) => item.email.toLowerCase() === userObj.email.toLowerCase());
+                if (!u) {
+                    const newUser: User = {
+                        id: userObj.id,
+                        name: userObj.full_name || payload.full_name,
+                        email: userObj.email || payload.email,
+                        role: 'institution',
+                        department: payload.institution_name || 'Engineering Faculty',
+                        institutionId: userObj.institution_id || payload.institution_id || undefined,
+                        status: 'Active',
+                    };
+                    setState((prev) => ({
+                        ...prev,
+                        users: [newUser, ...prev.users],
+                        sessionUserId: newUser.id,
+                    }));
+                } else {
+                    login(u.id);
+                }
+                return { ok: true };
+            }
+        } catch (apiErr: any) {
+            if (apiErr?.status === 400 || apiErr?.status === 409 || apiErr?.status === 422) {
+                return { ok: false, error: apiErr.message || 'Registration failed.' };
+            }
+        }
+
+        const newId = 'usr_' + Math.random().toString(36).slice(2, 9);
+        const newUser: User = {
+            id: newId,
+            name: payload.full_name,
+            email: payload.email,
+            role: 'institution',
+            department: payload.institution_name || 'Engineering Faculty',
+            status: 'Active',
+        };
+        setState((prev) => ({
+            ...prev,
+            users: [newUser, ...prev.users],
+            sessionUserId: newUser.id,
+        }));
+        login(newUser.id);
         return { ok: true };
     };
 
@@ -1007,6 +1138,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         dismissToast,
         login,
         loginWithEmail,
+        loginWithOtp,
+        loginWithGoogle,
+        registerUser,
         logout,
         switchUser,
         advanceClock,
