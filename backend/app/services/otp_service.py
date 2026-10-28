@@ -44,8 +44,8 @@ class OTPService:
 
         try:
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = subject
-            msg["From"] = settings.smtp_from_email
+            sender_email = settings.smtp_username if (settings.smtp_username and "@" in settings.smtp_username) else settings.smtp_from_email
+            msg["From"] = f"AICTE FlowOps <{sender_email}>"
             msg["To"] = to_email
 
             part1 = MIMEText(text_body, "plain")
@@ -58,7 +58,7 @@ class OTPService:
                     server.starttls()
                 if settings.smtp_username and settings.smtp_password:
                     server.login(settings.smtp_username, settings.smtp_password)
-                server.sendmail(settings.smtp_from_email, [to_email], msg.as_string())
+                server.sendmail(sender_email, [to_email], msg.as_string())
             logger.info("Successfully dispatched OTP email to '%s'.", to_email)
             return True
         except Exception as exc:
